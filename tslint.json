@@ -1,0 +1,49 @@
+{
+	"rules": {
+		"adjacent-overload-signatures": true,
+		"array-type": [
+			true,
+			"array"
+		],
+		"arrow-parens": true,
+		"class-name": true,
+		"comment-format": [
+			true,
+			"check-space"
+		],
+		"completed-docs": [
+			true,
+			"classes",
+			"functions",
+			"methods"
+		],
+		"curly": true,
+		"indent": [
+			true,
+			"spaces",
+			4
+		],
+		"jsdoc-format": true,
+		"new-parens": true,
+		"no-any": true,
+		"no-unused-expression": true,
+		"no-duplicate-variable": true,
+		"no-trailing-whitespace": true,
+		"no-unused-variable": true,
+		"no-var-keyword": true,
+		"only-arrow-functions": [
+			true,
+			"allow-declarations",
+			"allow-named-functions"
+		],
+		"semicolon": [
+			true,
+			"always"
+		],
+		"space-before-function-paren": [
+			true,
+			"never"
+		],
+		"triple-equals": true
+	}
+}
