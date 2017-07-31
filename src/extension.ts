@@ -563,19 +563,24 @@ export function activate(context: ExtensionContext): void {
 
     context.subscriptions.push(commands.registerCommand('cflint.openWorkspaceConfig', () => {
         let workspaceConfigPath = path.join(workspace.rootPath, configFileName);
-        workspace.openTextDocument(workspaceConfigPath).then((textDocument: TextDocument) => {
-            if (!textDocument) {
-                console.error('Could not open ' + workspaceConfigPath);
-                return;
-            }
 
-            window.showTextDocument(textDocument).then((editor: TextEditor) => {
-                if (!editor) {
-                    console.error('Could not show ' + workspaceConfigPath);
+        if (fs.existsSync(workspaceConfigPath)) {
+            workspace.openTextDocument(workspaceConfigPath).then((textDocument: TextDocument) => {
+                if (!textDocument) {
+                    console.error('Could not open ' + workspaceConfigPath);
                     return;
                 }
+
+                window.showTextDocument(textDocument).then((editor: TextEditor) => {
+                    if (!editor) {
+                        console.error('Could not show ' + workspaceConfigPath);
+                        return;
+                    }
+                });
             });
-        });
+        } else {
+            window.showErrorMessage('No config file could be found in the current workspace.');
+        }
     }));
 
     context.subscriptions.push(commands.registerCommand('cflint.openActiveConfig', () => {
@@ -596,7 +601,7 @@ export function activate(context: ExtensionContext): void {
                 });
             });
         } else {
-            window.showWarningMessage('No config file is being used for the currently active document.');
+            window.showErrorMessage('No config file is being used for the currently active document.');
         }
     }));
 

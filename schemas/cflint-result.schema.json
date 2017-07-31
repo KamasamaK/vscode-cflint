@@ -11,8 +11,8 @@
     },
     "timestamp": {
       "title": "Timestamp",
-      "description": "A timestamp representing the Unix epoch time when these results where generated",
-      "type": "string"
+      "description": "A timestamp representing the Unix epoch time when these results were generated",
+      "type": "number"
     },
     "issues": {
       "title": "Issues",
