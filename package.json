@@ -43,24 +43,25 @@
             "title": "CFLint",
             "properties": {
                 "cflint.enabled": {
+                    "description": "Controls whether linting is enabled for CFML files.",
                     "type": "boolean",
-                    "default": true,
-                    "description": "Controls whether cflint is enabled for CFML files or not."
+                    "default": true
                 },
                 "cflint.javaPath": {
+                    "description": "Overrides the java executable that is used to run CFLint.",
                     "type": [
                         "string",
                         "null"
                     ],
-                    "default": null,
-                    "description": "A path to the Java executable that will be used."
+                    "default": null
                 },
                 "cflint.jarPath": {
+                    "description": "A path to the CFLint standalone JAR file (CFLint-*-all.jar).",
                     "type": "string",
-                    "default": "",
-                    "description": "A path to the CFLint standalone JAR file."
+                    "default": ""
                 },
                 "cflint.runModes": {
+                    "description": "When to run the linter.",
                     "type": "object",
                     "properties": {
                         "onOpen": {
@@ -88,41 +89,40 @@
                         "onOpen": true,
                         "onSave": true,
                         "onChange": false
-                    },
-                    "description": "When to run the linter. Defaults are on open and on save."
+                    }
                 },
                 "cflint.typingDelay": {
+                    "description": "The number of milliseconds to wait for typing to stop until linting. Only valid when runModes.onChange is true.",
                     "type": "number",
-                    "default": 700,
-                    "description": "The number of milliseconds to wait for typing to stop until linting. Only valid when runModes.onChange is true."
+                    "default": 700
                 },
                 "cflint.linterCooldown": {
+                    "description": "The minimum number of milliseconds to wait between running the linter on a document.",
                     "type": "number",
-                    "default": 5000,
-                    "description": "The minimum number of milliseconds to wait between running the linter on a document."
+                    "default": 5000
                 },
                 "cflint.altConfigFile": {
-                    "type": "string",
                     "description": "The path to an alternate rule configuration file.",
+                    "type": "string",
                     "default": ""
                 },
                 "cflint.altConfigFile.usage": {
+                    "description": "Usage of the rule config file from cflint.altConfigFile.\nfallback: Use only if no rule config is found for document being linted.\nalways: Always use.",
                     "type": "string",
                     "enum": [
                         "fallback",
                         "always"
                     ],
-                    "default": "fallback",
-                    "description": "Usage of the rule config file from cflint.altConfigFile.\nfallback: Use only if no rule config is found for document being linted.\nalways: Always use."
+                    "default": "fallback"
                 },
                 "cflint.ignoreInfo": {
-                    "type": "boolean",
                     "description": "Whether to report issues with Info severity.",
+                    "type": "boolean",
                     "default": false
                 },
                 "cflint.ignoreWarnings": {
-                    "type": "boolean",
                     "description": "Whether to report issues with Warning severity.",
+                    "type": "boolean",
                     "default": false
                 }
             }
@@ -187,7 +187,6 @@
         "test": "node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
-        "open": "^0.0.5",
         "find-config": "^1.0.0"
     },
     "devDependencies": {

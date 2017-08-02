@@ -7,7 +7,7 @@ An extension to integrate CFLint into Visual Studio Code.
 
 **CFLint** is a linter for CFML and you can find more information at its [GitHub repository](https://github.com/cflint/CFLint). This extension integrates **CFLint** into the editor and Problems view.
 
-The extension uses the **CFLint** tool to scan CFML files and provide feedback on potential issues. The ways in which this is triggered are configurable in the [Settings](#settings). It optionally takes rule configuration via a `.cflintrc` file, for which details can be found at **CFLint**'s repo. This extension facilitates the creation and viewing of this file via [Commands](#commands). It also facilitates editing the file by contributing the schema.
+The extension uses the **CFLint** tool to scan CFML files and provide feedback on potential issues. The ways in which this is triggered are configurable in the [Settings](#settings). The defaults are only to run when CFML files are opened or saved. The linter optionally takes rule configuration via a `.cflintrc` file, for which details can be found at [**CFLint**'s repo](https://github.com/cflint/CFLint#folder-based-configuration). This extension facilitates the creation and viewing of this file via [Commands](#commands). It also facilitates editing the file by contributing the schema.
 
 Here is an example from the [CFDocs](https://github.com/foundeo/cfdocs) project using **CFLint** v1.1.0 with no rule configuration.
 
@@ -33,11 +33,11 @@ Currently depends on **[ilich8086.ColdFusion](https://marketplace.visualstudio.c
 
 ## Settings
 
-This extension contributes the following settings:
+The following are the configurable Settings (`Ctrl+Comma`) that this extension contributes to VS Code:
 
-* `cflint.enabled`: Enable/disable this extension
-* `cflint.javaPath`: [*Optional*] Overrides the java executable that is used to run CFLint
-* `cflint.jarPath`: A path to the CFLint standalone JAR file (`CFLint-*-all.jar`)
+* `cflint.enabled`: Enable/disable this extension.
+* `cflint.javaPath`: [*Optional*] Overrides the java executable that is used to run CFLint.
+* `cflint.jarPath`: A path to the CFLint standalone JAR file (`CFLint-*-all.jar`).
 * `cflint.runModes`: Determines when linter is run.  
 **Properties**
   * `cflint.runModes.onOpen`: Run linter whenever a CFML file is opened. [*Default*: `true`]
@@ -46,7 +46,7 @@ This extension contributes the following settings:
 * `cflint.altConfigFile`: [*Optional*] The path to an alternate rule configuration file.
 * `cflint.altConfigFile.usage`: Usage of the rule config file from `cflint.altConfigFile`.  
 **Values**
-  * `fallback`: [*Default*] Use only if no rule config is found for document being linted.
+  * `fallback`: Use only if no rule config is found for document being linted. [*Default*]
   * `always`: Always use.
 * `cflint.typingDelay`: The number of milliseconds to wait for typing to stop until linting. Only valid when `cflint.runModes.onChange` is true. [*Default*: `700`]
 * `cflint.linterCooldown`: The minimum number of milliseconds to wait between running the linter on a document. [*Default*: `5000`]
@@ -58,9 +58,9 @@ This extension contributes the following settings:
 
 Used in Command Palette (`Ctrl+Shift+P`). Alternatively, can be bound to Keyboard Shortcuts (`Ctrl+K Ctrl+S`).
 
-* Enable cflint for this workspace
+* Enable CFLint for this workspace
 
-* Disable cflint for this workspace
+* Disable CFLint for this workspace
 
 * Manually run CFLint on currently active file
 

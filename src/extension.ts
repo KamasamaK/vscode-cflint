@@ -9,7 +9,6 @@ import {
 import { Delayer } from './delayer';
 import { spawn, ChildProcess } from 'child_process';
 
-const open = require('open');
 const findConfig = require('find-config');
 
 const configFileName: string = ".cflintrc";
@@ -517,11 +516,15 @@ function cfLintResult(document: TextDocument, output: string): void {
  * @param ruleId An optional identifer/code for a particular CFLint rule.
  */
 function showRuleDocumentation(ruleId?: string): void {
-    let cflintDocBaseURL: string = "https://github.com/cflint/CFLint/blob/master/RULES.md";
+    let cflintRulesDocURL: string = "https://github.com/cflint/CFLint/blob/master/RULES.md";
+
     if (ruleId && ruleId.length) {
-        cflintDocBaseURL += "#" + ruleId.toLowerCase();
+        cflintRulesDocURL += "#" + ruleId.toLowerCase();
     }
-    open(cflintDocBaseURL);
+    const cflintRulesUri: Uri = Uri.parse(cflintRulesDocURL);
+
+    // commands.executeCommand('markdown.showPreview', cflintRulesUri);
+    commands.executeCommand('vscode.open', cflintRulesUri);
 }
 
 /**
