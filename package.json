@@ -2,12 +2,12 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.1.2",
+    "version": "0.2.0",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
     "engines": {
-        "vscode": "^1.14.0"
+        "vscode": "^1.15.0"
     },
     "repository": {
         "type": "git",
@@ -31,9 +31,9 @@
         "onCommand:cflint.enable",
         "onCommand:cflint.disable",
         "onCommand:cflint.runLinter",
-        "onCommand:cflint.createWorkspaceConfig",
+        "onCommand:cflint.createRootConfig",
         "onCommand:cflint.createCwdConfig",
-        "onCommand:cflint.openWorkspaceConfig",
+        "onCommand:cflint.openRootConfig",
         "onCommand:cflint.openActiveConfig"
     ],
     "main": "./out/src/extension",
@@ -48,7 +48,7 @@
                     "default": true
                 },
                 "cflint.javaPath": {
-                    "description": "Overrides the java executable that is used to run CFLint.",
+                    "description": "Overrides the Java executable that is used to run CFLint.",
                     "type": [
                         "string",
                         "null"
@@ -94,12 +94,14 @@
                 "cflint.typingDelay": {
                     "description": "The number of milliseconds to wait for typing to stop until linting. Only valid when runModes.onChange is true.",
                     "type": "number",
-                    "default": 700
+                    "default": 700,
+                    "minimum": 200
                 },
                 "cflint.linterCooldown": {
                     "description": "The minimum number of milliseconds to wait between running the linter on a document.",
                     "type": "number",
-                    "default": 5000
+                    "default": 5000,
+                    "minimum": 500
                 },
                 "cflint.altConfigFile": {
                     "description": "The path to an alternate rule configuration file.",
@@ -144,14 +146,14 @@
                 "command": "cflint.runLinter"
             },
             {
-                "title": "Create '.cflintrc' file in the root of the workspace",
+                "title": "Create '.cflintrc' file in the root of the current working directory",
                 "category": "CFLint",
-                "command": "cflint.createWorkspaceConfig"
+                "command": "cflint.createRootConfig"
             },
             {
-                "title": "Open '.cflintrc' file in the root of the workspace",
+                "title": "Open '.cflintrc' file in the root of the current working directory",
                 "category": "CFLint",
-                "command": "cflint.openWorkspaceConfig"
+                "command": "cflint.openRootConfig"
             },
             {
                 "title": "Create '.cflintrc' file in the current working directory",
@@ -162,6 +164,16 @@
                 "title": "Open '.cflintrc' file for currently active document",
                 "category": "CFLint",
                 "command": "cflint.openActiveConfig"
+            },
+            {
+                "title": "Clear CFLint problems for active document",
+                "category": "CFLint",
+                "command": "cflint.clearActiveDocumentProblems"
+            },
+            {
+                "title": "Clear all CFLint problems",
+                "category": "CFLint",
+                "command": "cflint.clearAllProblems"
             },
             {
                 "title": "View CFLint rules documentation (online)",
@@ -190,11 +202,11 @@
         "find-config": "^1.0.0"
     },
     "devDependencies": {
-        "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
-        "mocha": "^2.3.3",
-        "@types/node": "^6.0.40",
-        "@types/mocha": "^2.2.32"
+        "typescript": "^2.4.2",
+        "vscode": "^1.1.4",
+        "mocha": "^3.5.0",
+        "@types/node": "^8.0.20",
+        "@types/mocha": "^2.2.41"
     },
     "extensionDependencies": [
         "ilich8086.coldfusion"
