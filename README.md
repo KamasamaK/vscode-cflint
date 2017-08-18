@@ -64,9 +64,9 @@ Used in Command Palette (`Ctrl+Shift+P`). Alternatively, can be bound to Keyboar
 
 - Manually run CFLint on currently active file
 
-- Create '.cflintrc' file in the root of the workspace
+- Create '.cflintrc' file in the root of the current working directory
 
-- Open '.cflintrc' file in the root of the workspace
+- Open '.cflintrc' file in the root of the current working directory
 
 - Create '.cflintrc' file in the current working directory
 
@@ -81,8 +81,9 @@ Used in Command Palette (`Ctrl+Shift+P`). Alternatively, can be bound to Keyboar
 
 ## Known Issues/Limitations
 
-1. Not an issue with the extension itself, but be aware that **CFLint** is a heavy/slow application compared to most linters. Some things may be able to be done with the extension that account for this.
-1. As of this writing, **CFLint** (v1.2.3) often misreports column numbers.
+1. Not an issue with the extension itself, but be aware that **CFLint** is a heavy/slow application compared to most linters. Some things are done with the extension to account for this.
+1. As of this writing, **CFLint** (v1.2.0) often misreports column numbers.
+1. **CFLint v1.2.2** introduced a change in output that makes it not parsable ([Issue #448](https://github.com/cflint/CFLint/issues/448)). This was not resolved for v1.2.3. Please continue to use 1.2.0 until a fix is issued, expected in v1.3.0.
 
 
 ## Future Plans
