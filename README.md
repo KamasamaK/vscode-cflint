@@ -2,7 +2,6 @@
 
 An extension to integrate CFLint into Visual Studio Code.
 
-
 ## Features
 
 **CFLint** is a linter for CFML and you can find more information at its [GitHub repository](https://github.com/cflint/CFLint). This extension integrates **CFLint** into the editor and Problems view.
@@ -14,11 +13,10 @@ Here is an example from the [CFDocs](https://github.com/foundeo/cfdocs) project 
 ![CFDocs](images/cfdocs.png)
 
 1. The status bar item for Problems. Indicates number of Error, Warning, and Info issues reported. Clicking it will bring up the Problems view. Alternatively, you can use `Ctrl+Shift+M`.
-2. The Problems view. Grouped by file, ordered by severity, line number, column number. Clicking the problem will focus the issue in the editor.  
-```[Severity icon] [Provider] [Issue ID]: [Issue Message] (line number, column number)```
-3. Highlights within the editor. Hovering reveals the message.
-4. Filter issues in Problems view.
-
+1. The Problems view. Grouped by file, ordered by severity, line number, column number. Clicking the problem will focus the issue in the editor.  
+`[Severity icon] [Provider] [Issue ID]: [Issue Message] (line number, column number)`
+1. Highlights within the editor. Hovering reveals the message.
+1. Filter issues in Problems view.
 
 ## Requirements
 
@@ -28,8 +26,10 @@ You must first install **CFLint**. You may skip the steps below if you already h
 1. Download latest **CFLint** (v1.2.0+) standalone/all JAR from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Ccflint) or [the GitHub releases](https://github.com/cflint/CFLint/releases). Alternatively, build it yourself using [these instructions](https://github.com/cflint/CFLint#building-cflint). This is the JAR file that will be provided to `cflint.jarPath` in the settings.
 
 ### Extension dependencies
-Currently depends on **[ilich8086.ColdFusion](https://marketplace.visualstudio.com/items?itemName=ilich8086.ColdFusion)** as it contributes the Language Identifier being used.
 
+Requires an extension that contributes the language as linting is only done for particular language IDs. Choose one of the below
+- **[KamasamaK.vscode-cfml](https://marketplace.visualstudio.com/items?itemName=KamasamaK.vscode-cfml)**
+- **[ilich8086.ColdFusion](https://marketplace.visualstudio.com/items?itemName=ilich8086.ColdFusion)**
 
 ## Settings
 
@@ -52,7 +52,6 @@ The following are the configurable Settings (`Ctrl+Comma`) that this extension c
 - `cflint.linterCooldown`: The minimum number of milliseconds to wait between running the linter on a document. [*Default*: `5000`]
 - `cflint.ignoreInfo`: Whether to ignore issues with Info severity. [*Default*: `false`]
 - `cflint.ignoreWarnings`: Whether to ignore issues with Warning severity. [*Default*: `false`]
-
 
 ## Commands
 
@@ -78,13 +77,11 @@ Used in Command Palette (`Ctrl+Shift+P`). Alternatively, can be bound to Keyboar
 
 - View CFLint rules documentation (online)
 
-
 ## Known Issues/Limitations
 
 1. Not an issue with the extension itself, but be aware that **CFLint** is a heavy/slow application compared to most linters. Some things are done with the extension to account for this.
 1. As of this writing, **CFLint** (v1.2.0) often misreports column numbers.
 1. **CFLint v1.2.2** introduced a change in output that makes it not parsable ([Issue #448](https://github.com/cflint/CFLint/issues/448)). This was not resolved for v1.2.3. Please continue to use 1.2.0 until a fix is issued, expected in v1.3.0.
-
 
 ## Future Plans
 
@@ -92,11 +89,9 @@ Used in Command Palette (`Ctrl+Shift+P`). Alternatively, can be bound to Keyboar
 - Investigate useful menu items.
 - Investigate where extension performance may be able to be improved (e.g. with Promises, Cancellation Tokens, or Language Server).
 
-
 ## Release Notes
 
 See [CHANGELOG.md](/CHANGELOG.md)
-
 
 ## Contributing
 

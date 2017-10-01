@@ -2,7 +2,7 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
@@ -28,6 +28,9 @@
     "activationEvents": [
         "onLanguage:cfml",
         "onLanguage:lang-cfml",
+        "workspaceContains:**/*.cfm",
+        "workspaceContains:**/*.cfml",
+        "workspaceContains:**/*.cfc",
         "onCommand:cflint.enable",
         "onCommand:cflint.disable",
         "onCommand:cflint.runLinter",
@@ -199,16 +202,13 @@
         "test": "node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
-        "find-config": "^1.0.0"
+        "find-config": "1.0.0"
     },
     "devDependencies": {
-        "typescript": "^2.4.2",
-        "vscode": "^1.1.4",
-        "mocha": "^3.5.0",
-        "@types/node": "^8.0.20",
-        "@types/mocha": "^2.2.41"
-    },
-    "extensionDependencies": [
-        "ilich8086.coldfusion"
-    ]
+        "typescript": "^2.5.3",
+        "vscode": "^1.1.5",
+        "mocha": "^3.5.3",
+        "@types/node": "^8.0.31",
+        "@types/mocha": "^2.2.43"
+    }
 }

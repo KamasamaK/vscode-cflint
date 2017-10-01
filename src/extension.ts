@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import {
     workspace, window, commands, languages, WorkspaceConfiguration, Disposable, ExtensionContext, Uri, StatusBarAlignment, StatusBarItem,
-    TextDocument, TextDocumentChangeEvent, TextEditor, Diagnostic, DiagnosticSeverity, DiagnosticCollection, Range, Position
+    TextDocument, TextDocumentChangeEvent, TextEditor, Diagnostic, DiagnosticSeverity, DiagnosticCollection, Range, Position, ConfigurationTarget
 } from 'vscode';
 import { Delayer } from './delayer';
 import { spawn, ChildProcess } from 'child_process';
@@ -85,26 +85,26 @@ function isCfmlLanguage(languageId: string): boolean {
 /**
  * Enables linter.
  */
-function enable(): void {
+async function enable(): Promise<void> {
     if (!workspace.workspaceFolders) {
         window.showErrorMessage("CFLint can only be enabled if VS Code is opened on a workspace folder.");
         return;
     }
     let cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    cflintSettings.update("enabled", true, false);
+    cflintSettings.update("enabled", true, ConfigurationTarget.Workspace);
     updateStatusBarItem(window.activeTextEditor);
 }
 
 /**
  * Disables linter.
  */
-function disable(): void {
+async function disable(): Promise<void> {
     if (!workspace.workspaceFolders) {
         window.showErrorMessage("CFLint can only be disabled if VS Code is opened on a workspace folder.");
         return;
     }
     let cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    cflintSettings.update("enabled", false, false);
+    cflintSettings.update("enabled", false, ConfigurationTarget.Workspace);
     updateStatusBarItem(window.activeTextEditor);
 }
 
@@ -113,7 +113,7 @@ function disable(): void {
  */
 function isLinterEnabled(): boolean {
     const cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    return cflintSettings.get("enabled", true);
+    return cflintSettings.get<boolean>("enabled", true);
 }
 
 /**
@@ -121,7 +121,7 @@ function isLinterEnabled(): boolean {
  */
 function isOnCooldown(document: TextDocument): boolean {
     const cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    let cooldownSetting: number = cflintSettings.get("linterCooldown");
+    let cooldownSetting: number = cflintSettings.get<number>("linterCooldown");
     cooldownSetting = Math.max(cooldownSetting, minimumCooldown);
 
     const documentCooldown: number = linterCooldowns.get(document.uri);
@@ -202,8 +202,8 @@ function createDefaultConfiguration(directory: string): boolean {
  */
 function getConfigFile(document: TextDocument, fileName: string): string {
     const cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    const altConfigFile: string = cflintSettings.get("altConfigFile", "");
-    const altConfigFileUsage: string = cflintSettings.get("altConfigFile.usage", "fallback");
+    const altConfigFile: string = cflintSettings.get<string>("altConfigFile", "");
+    const altConfigFileUsage: string = cflintSettings.get<string>("altConfigFile.usage", "fallback");
     const altConfigFileExists: boolean = alternateConfigFileExists();
 
     if (altConfigFileExists && altConfigFileUsage === "always") {
@@ -230,7 +230,7 @@ function getConfigFile(document: TextDocument, fileName: string): string {
  */
 function alternateConfigFileExists(): boolean {
     const cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    const altConfigFile: string = cflintSettings.get("altConfigFile", "");
+    const altConfigFile: string = cflintSettings.get<string>("altConfigFile", "");
     return fs.existsSync(altConfigFile);
 }
 
@@ -255,7 +255,7 @@ function correctJavaBinName(binName: string) {
  */
 function findJavaExecutable(): string {
     let cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    let javaPath: string = cflintSettings.get("javaPath");
+    let javaPath: string = cflintSettings.get<string>("javaPath");
     const javaBinName = correctJavaBinName("java");
 
     // Start with setting
@@ -299,7 +299,7 @@ function findJavaExecutable(): string {
  */
 function jarPathExists(): boolean {
     let cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    const jarPath: string = cflintSettings.get("jarPath", "");
+    const jarPath: string = cflintSettings.get<string>("jarPath", "");
     return fs.existsSync(jarPath);
 }
 
@@ -325,14 +325,14 @@ function showInvalidJarPathMessage(): void {
     window.showErrorMessage("You must set cflint.jarPath to a valid path in your settings", "Set now").then(
         (selection: string) => {
             if (selection === "Set now") {
-                const jarPath: string = cflintSettings.get("jarPath", "");
+                const jarPath: string = cflintSettings.get<string>("jarPath", "");
                 window.showInputBox({
                     prompt: "A path to the CFLint standalone JAR file",
                     value: jarPath,
                     ignoreFocusOut: true,
                     validateInput: validatePath
                 }).then((val: string) => {
-                    cflintSettings.update("jarPath", val, true);
+                    cflintSettings.update("jarPath", val, ConfigurationTarget.Global);
                 });
             }
         }
@@ -352,12 +352,12 @@ function createDiagnostics(issue: CFLintIssueList): Diagnostic[] {
     let issueSeverity = issue.severity;
     let cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
 
-    const ignoreInfo: boolean = cflintSettings.get("ignoreInfo", false);
+    const ignoreInfo: boolean = cflintSettings.get<boolean>("ignoreInfo", false);
     if (ignoreInfo && getDiagnosticSeverity(issueSeverity) === DiagnosticSeverity.Information) {
         return diagnosticArr;
     }
 
-    const ignoreWarnings: boolean = cflintSettings.get("ignoreWarnings", false);
+    const ignoreWarnings: boolean = cflintSettings.get<boolean>("ignoreWarnings", false);
     if (ignoreWarnings && getDiagnosticSeverity(issueSeverity) === DiagnosticSeverity.Warning) {
         return diagnosticArr;
     }
@@ -471,7 +471,7 @@ function onLintDocument(document: TextDocument): void {
 
     let javaArgs: string[] = [
         "-jar",
-        cflintSettings.get("jarPath", ""),
+        cflintSettings.get<string>("jarPath", ""),
         "-stdin",
         document.fileName,
         "-q",
@@ -482,7 +482,7 @@ function onLintDocument(document: TextDocument): void {
 
     // TODO: This should only be necessary for an alternate config file when file can be detected for stdin
     const configFile: string = getConfigFile(document, configFileName);
-    const altConfigFile: string = cflintSettings.get("altConfigFile", "");
+    const altConfigFile: string = cflintSettings.get<string>("altConfigFile", "");
     if (configFile) {
         javaArgs.push("-configfile", configFile);
     }
@@ -539,7 +539,7 @@ function cfLintResult(document: TextDocument, output: string): void {
  *
  * @param ruleId An optional identifer/code for a particular CFLint rule.
  */
-function showRuleDocumentation(ruleId?: string): void {
+async function showRuleDocumentation(ruleId?: string): Promise<void> {
     let cflintRulesDocURL: string = "https://github.com/cflint/CFLint/blob/master/RULES.md";
 
     if (ruleId && ruleId.length) {
@@ -603,7 +603,7 @@ function initializeSettings(): void {
     let fileSettings: WorkspaceConfiguration = workspace.getConfiguration("files");
     let fileAssociations = fileSettings.get("associations", {});
     fileAssociations[".cflintrc"] = "json";
-    fileSettings.update("associations", fileAssociations, true);
+    fileSettings.update("associations", fileAssociations, ConfigurationTarget.Global);
 }
 
 /**
@@ -744,7 +744,7 @@ export function activate(context: ExtensionContext): void {
 
         let delayer = typingDelayer.get(evt.document.uri);
         if (!delayer) {
-            let typingDelay: number = cflintSettings.get("typingDelay");
+            let typingDelay: number = cflintSettings.get<number>("typingDelay");
             typingDelay = Math.max(typingDelay, minimumTypingDelay);
             delayer = new Delayer<void>(typingDelay);
             typingDelayer.set(evt.document.uri, delayer);
