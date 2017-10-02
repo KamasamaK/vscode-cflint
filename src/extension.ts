@@ -22,7 +22,6 @@ const configFileDefault: string = [
 ].join(process.platform === "win32" ? "\r\n" : "\n");
 const minimumTypingDelay: number = 200;
 const minimumCooldown: number = 500;
-const maxSimultaneousLints: number = 3;
 
 let diagnosticCollection: DiagnosticCollection;
 let typingDelayer: Map<Uri, Delayer<void>>;
@@ -458,6 +457,8 @@ function lintDocument(document: TextDocument): void {
 
     linterCooldowns.set(document.uri, Date.now());
 
+    const cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
+    let maxSimultaneousLints: number = cflintSettings.get<number>("maxSimultaneousLints");
     if (pendingLints.size > maxSimultaneousLints) {
         queuedLints.set(document.uri, document);
         return;
@@ -496,7 +497,7 @@ function onLintDocument(document: TextDocument): void {
 
     let output: string = "";
     let childProcess: ChildProcess = spawn(javaExecutable, javaArgs);
-    console.log(javaExecutable + " " + javaArgs.join(" "));
+    console.log(`[${getCurrentTimeFormatted()}] ${javaExecutable} ${javaArgs.join(" ")}`);
 
     if (childProcess.pid) {
         pendingLints.set(document.uri, childProcess);
@@ -525,8 +526,8 @@ function onLintDocument(document: TextDocument): void {
 
     childProcess.on("error", (err: Error) => {
         window.showErrorMessage("There was a problem with CFLint. " + err.message);
-        console.error(childProcess);
-        console.error(err);
+        console.error(`[${getCurrentTimeFormatted()}] ${childProcess}`);
+        console.error(`[${getCurrentTimeFormatted()}] ${err}`);
     });
 }
 
@@ -625,7 +626,7 @@ function initializeSettings(): void {
  */
 export function activate(context: ExtensionContext): void {
 
-    console.log("cflint is active!");
+    console.log(`[${getCurrentTimeFormatted()}] cflint is active!`);
 
     initializeSettings();
 

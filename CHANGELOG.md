@@ -2,6 +2,10 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.2.2] - 2017-10-02
+
+- Added `cflint.maxSimultaneousLints` setting along with the feature it controls, which queues any lints that exceed that number.
+
 ## [0.2.1] - 2017-10-01
 
 - Removed extension dependency

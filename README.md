@@ -50,6 +50,7 @@ The following are the configurable Settings (`Ctrl+Comma`) that this extension c
   - `always`: Always use.
 - `cflint.typingDelay`: The number of milliseconds to wait for typing to stop until linting. Only valid when `cflint.runModes.onChange` is true. [*Default*: `700`]
 - `cflint.linterCooldown`: The minimum number of milliseconds to wait between running the linter on a document. [*Default*: `5000`]
+- `cflint.maxSimultaneousLints`: The maximum number of simultaneously running lints. Any exceeding this number will be queued. [*Default*: `3`]
 - `cflint.ignoreInfo`: Whether to ignore issues with Info severity. [*Default*: `false`]
 - `cflint.ignoreWarnings`: Whether to ignore issues with Warning severity. [*Default*: `false`]
 
