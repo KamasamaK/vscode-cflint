@@ -22,11 +22,13 @@ const configFileDefault: string = [
 ].join(process.platform === "win32" ? "\r\n" : "\n");
 const minimumTypingDelay: number = 200;
 const minimumCooldown: number = 500;
+const maxSimultaneousLints: number = 3;
 
 let diagnosticCollection: DiagnosticCollection;
 let typingDelayer: Map<Uri, Delayer<void>>;
 let linterCooldowns: Map<Uri, number>;
 let pendingLints: Map<Uri, ChildProcess>;
+let queuedLints: Map<Uri, TextDocument>;
 let statusBarItem: StatusBarItem;
 let cflintState: State;
 
@@ -450,11 +452,16 @@ function lintDocument(document: TextDocument): void {
         return;
     }
 
-    if (isOnCooldown(document) || pendingLints.has(document.uri)) {
+    if (isOnCooldown(document) || pendingLints.has(document.uri) || queuedLints.has(document.uri)) {
         return;
     }
 
     linterCooldowns.set(document.uri, Date.now());
+
+    if (pendingLints.size > maxSimultaneousLints) {
+        queuedLints.set(document.uri, document);
+        return;
+    }
 
     onLintDocument(document);
 }
@@ -505,6 +512,11 @@ function onLintDocument(document: TextDocument): void {
                 cfLintResult(document, output);
             }
             pendingLints.delete(document.uri);
+            if (queuedLints.size > 0) {
+                const nextKey: Uri = queuedLints.keys().next().value;
+                onLintDocument(queuedLints.get(nextKey));
+                queuedLints.delete(nextKey);
+            }
             if (pendingLints.size === 0) {
                 updateState(State.Stopped);
             }
@@ -622,6 +634,7 @@ export function activate(context: ExtensionContext): void {
     typingDelayer = new Map<Uri, Delayer<void>>();
     linterCooldowns = new Map<Uri, number>();
     pendingLints = new Map<Uri, ChildProcess>();
+    queuedLints = new Map<Uri, TextDocument>();
 
     statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 0);
     statusBarItem.text = "CFLint";
@@ -773,6 +786,7 @@ export function activate(context: ExtensionContext): void {
         }
         diagnosticCollection.delete(evt.uri);
         linterCooldowns.delete(evt.uri);
+        queuedLints.delete(evt.uri);
 
         if (pendingLints.size === 0) {
             updateState(State.Stopped);
