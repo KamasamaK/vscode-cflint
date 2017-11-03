@@ -43,8 +43,8 @@ The following are the configurable Settings (`Ctrl+Comma`) that this extension c
   - `cflint.runModes.onOpen`: Run linter whenever a CFML file is opened. [*Default*: `true`]
   - `cflint.runModes.onSave`: Run linter whenever a CFML file is saved. [*Default*: `true`]
   - `cflint.runModes.onChange`: Run linter whenever a CFML file is changed. (Not recommended) [*Default*: `false`]
-- `cflint.altConfigFile`: [*Optional*] The path to an alternate rule configuration file.
-- `cflint.altConfigFile.usage`: Usage of the rule config file from `cflint.altConfigFile`.  
+- `cflint.altConfigFile.path`: [*Optional*] The path to an alternate rule configuration file.
+- `cflint.altConfigFile.usage`: Usage of the rule config file from `cflint.altConfigFile.path`.  
 **Values**
   - `fallback`: Use only if no rule config is found for document being linted. [*Default*]
   - `always`: Always use.
