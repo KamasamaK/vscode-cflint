@@ -2,6 +2,15 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.2.3] - 2017-11-03
+
+- Updated engine and dependencies
+- Fixed a configuration setting
+- Changed tsconfig options
+- Updated tslint rule
+- Added "Open File" option when creating a config file that already exists
+- Replaced some `Thenable`s with async/await
+
 ## [0.2.2] - 2017-10-02
 
 - Added `cflint.maxSimultaneousLints` setting along with the feature it controls, which queues any lints that exceed that number.

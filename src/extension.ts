@@ -1,5 +1,3 @@
-'use strict';
-
 import * as path from 'path';
 import * as fs from 'fs';
 import {
@@ -158,37 +156,33 @@ function getCurrentTimeFormatted(): string {
  * @param directory The directory in which to create the config file.
  * @return Indication of whether the file creation was successful.
  */
-function createDefaultConfiguration(directory: string): boolean {
+async function createDefaultConfiguration(directory: string): Promise<boolean> {
     if (!directory) {
         window.showErrorMessage("A CFLint configuration can only be generated if VS Code is opened on a workspace folder.");
-        return;
+        return false;
     }
     let cflintConfigFile: string = path.join(directory, configFileName);
     if (!fs.existsSync(cflintConfigFile)) {
         fs.writeFileSync(cflintConfigFile, configFileDefault, { encoding: "utf8" });
         window.showInformationMessage("Successfully created configuration file", "Open file").then(
-            (selection: string) => {
+            async (selection: string) => {
                 if (selection === "Open file") {
-                    workspace.openTextDocument(cflintConfigFile).then((textDocument: TextDocument) => {
-                        if (!textDocument) {
-                            console.error("Could not open " + cflintConfigFile);
-                            return;
-                        }
-
-                        window.showTextDocument(textDocument).then((editor: TextEditor) => {
-                            if (!editor) {
-                                console.error("Could not show " + cflintConfigFile);
-                                return;
-                            }
-                        });
-                    });
+                    const textDocument: TextDocument = await workspace.openTextDocument(cflintConfigFile);
+                    window.showTextDocument(textDocument);
                 }
             }
         );
 
         return true;
     } else {
-        window.showErrorMessage("Configuration file already exists");
+        window.showErrorMessage("Configuration file already exists", "Open file").then(
+            async (selection: string) => {
+                if (selection === "Open file") {
+                    const textDocument: TextDocument = await workspace.openTextDocument(cflintConfigFile);
+                    window.showTextDocument(textDocument);
+                }
+            }
+        );
     }
 
     return false;
@@ -203,7 +197,7 @@ function createDefaultConfiguration(directory: string): boolean {
  */
 function getConfigFile(document: TextDocument, fileName: string): string {
     const cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    const altConfigFile: string = cflintSettings.get<string>("altConfigFile", "");
+    const altConfigFile: string = cflintSettings.get<string>("altConfigFile.path", "");
     const altConfigFileUsage: string = cflintSettings.get<string>("altConfigFile.usage", "fallback");
     const altConfigFileExists: boolean = alternateConfigFileExists();
 
@@ -231,7 +225,7 @@ function getConfigFile(document: TextDocument, fileName: string): string {
  */
 function alternateConfigFileExists(): boolean {
     const cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
-    const altConfigFile: string = cflintSettings.get<string>("altConfigFile", "");
+    const altConfigFile: string = cflintSettings.get<string>("altConfigFile.path", "");
     return fs.existsSync(altConfigFile);
 }
 
@@ -322,10 +316,10 @@ function validatePath(input: string): string {
  * Displays error message indicating that cflint.jarPath needs to be set, and prompts for path.
  */
 function showInvalidJarPathMessage(): void {
-    let cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
     window.showErrorMessage("You must set cflint.jarPath to a valid path in your settings", "Set now").then(
         (selection: string) => {
             if (selection === "Set now") {
+                let cflintSettings: WorkspaceConfiguration = workspace.getConfiguration("cflint");
                 const jarPath: string = cflintSettings.get<string>("jarPath", "");
                 window.showInputBox({
                     prompt: "A path to the CFLint standalone JAR file",
@@ -490,7 +484,7 @@ function onLintDocument(document: TextDocument): void {
 
     // TODO: This should only be necessary for an alternate config file when file can be detected for stdin
     const configFile: string = getConfigFile(document, configFileName);
-    const altConfigFile: string = cflintSettings.get<string>("altConfigFile", "");
+    // const altConfigFile: string = cflintSettings.get<string>("altConfigFile.path", "");
     if (configFile) {
         javaArgs.push("-configfile", configFile);
     }
@@ -555,7 +549,7 @@ function cfLintResult(document: TextDocument, output: string): void {
 async function showRuleDocumentation(ruleId?: string): Promise<void> {
     let cflintRulesDocURL: string = "https://github.com/cflint/CFLint/blob/master/RULES.md";
 
-    if (ruleId && ruleId.length) {
+    if (ruleId) {
         cflintRulesDocURL += "#" + ruleId.toLowerCase();
     }
     const cflintRulesUri: Uri = Uri.parse(cflintRulesDocURL);
@@ -653,47 +647,25 @@ export function activate(context: ExtensionContext): void {
         createDefaultConfiguration(workspaceFolder.uri.fsPath);
     }));
 
-    context.subscriptions.push(commands.registerCommand("cflint.openRootConfig", () => {
+    context.subscriptions.push(commands.registerCommand("cflint.openRootConfig", async () => {
         const workspaceFolder = workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
 
         let rootConfigPath = path.join(workspaceFolder.uri.fsPath, configFileName);
 
         if (fs.existsSync(rootConfigPath)) {
-            workspace.openTextDocument(rootConfigPath).then((textDocument: TextDocument) => {
-                if (!textDocument) {
-                    console.error("Could not open " + rootConfigPath);
-                    return;
-                }
-
-                window.showTextDocument(textDocument).then((editor: TextEditor) => {
-                    if (!editor) {
-                        console.error("Could not show " + rootConfigPath);
-                        return;
-                    }
-                });
-            });
+            const textDocument: TextDocument = await workspace.openTextDocument(rootConfigPath);
+            window.showTextDocument(textDocument);
         } else {
-            window.showErrorMessage("No config file could be found in the current workspace.");
+            window.showErrorMessage("No config file could be found in the current workspace folder.");
         }
     }));
 
-    context.subscriptions.push(commands.registerCommand("cflint.openActiveConfig", () => {
+    context.subscriptions.push(commands.registerCommand("cflint.openActiveConfig", async () => {
         let currentConfigPath = getConfigFile(window.activeTextEditor.document, configFileName);
 
         if (currentConfigPath) {
-            workspace.openTextDocument(currentConfigPath).then((textDocument: TextDocument) => {
-                if (!textDocument) {
-                    console.error("Could not open " + currentConfigPath);
-                    return;
-                }
-
-                window.showTextDocument(textDocument).then((editor: TextEditor) => {
-                    if (!editor) {
-                        console.error("Could not show " + currentConfigPath);
-                        return;
-                    }
-                });
-            });
+            const textDocument: TextDocument = await workspace.openTextDocument(currentConfigPath);
+            window.showTextDocument(textDocument);
         } else {
             window.showErrorMessage("No config file is being used for the currently active document.");
         }

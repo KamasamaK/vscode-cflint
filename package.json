@@ -2,12 +2,12 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
     "engines": {
-        "vscode": "^1.15.0"
+        "vscode": "^1.17.0"
     },
     "repository": {
         "type": "git",
@@ -111,7 +111,7 @@
                     "type": "number",
                     "default": 3
                 },
-                "cflint.altConfigFile": {
+                "cflint.altConfigFile.path": {
                     "description": "The path to an alternate rule configuration file.",
                     "type": "string",
                     "default": ""
@@ -211,9 +211,9 @@
     },
     "devDependencies": {
         "typescript": "^2.5.3",
-        "vscode": "^1.1.5",
-        "mocha": "^3.5.3",
-        "@types/node": "^8.0.31",
+        "vscode": "^1.1.6",
+        "mocha": "^4.0.1",
+        "@types/node": "^8.0.45",
         "@types/mocha": "^2.2.43"
     }
 }
