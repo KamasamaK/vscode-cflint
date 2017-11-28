@@ -2,7 +2,7 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
@@ -33,11 +33,7 @@
         "workspaceContains:**/*.cfc",
         "onCommand:cflint.enable",
         "onCommand:cflint.disable",
-        "onCommand:cflint.runLinter",
-        "onCommand:cflint.createRootConfig",
-        "onCommand:cflint.createCwdConfig",
-        "onCommand:cflint.openRootConfig",
-        "onCommand:cflint.openActiveConfig"
+        "onCommand:cflint.runLinter"
     ],
     "main": "./out/src/extension",
     "contributes": {
@@ -60,6 +56,11 @@
                 },
                 "cflint.jarPath": {
                     "description": "A path to the CFLint standalone JAR file (CFLint-*-all.jar).",
+                    "type": "string",
+                    "default": ""
+                },
+                "cflint.outputDirectory": {
+                    "description": "A directory in which to place output files when invoking one of the output commands",
                     "type": "string",
                     "default": ""
                 },
@@ -187,6 +188,26 @@
                 "title": "View CFLint rules documentation (online)",
                 "category": "CFLint",
                 "command": "cflint.viewRulesDoc"
+            },
+            {
+                "title": "Output CFLint text file for currently active document",
+                "category": "CFLint",
+                "command": "cflint.outputTextFile"
+            },
+            {
+                "title": "Output CFLint HTML file for currently active document",
+                "category": "CFLint",
+                "command": "cflint.outputHtmlFile"
+            },
+            {
+                "title": "Output CFLint JSON file for currently active document",
+                "category": "CFLint",
+                "command": "cflint.outputJsonFile"
+            },
+            {
+                "title": "Output CFLint XML file for currently active document",
+                "category": "CFLint",
+                "command": "cflint.outputXmlFile"
             }
         ],
         "jsonValidation": [
@@ -210,10 +231,11 @@
         "find-config": "1.0.0"
     },
     "devDependencies": {
-        "typescript": "^2.5.3",
+        "typescript": "^2.6.2",
+        "tslint": "^5.8.0",
         "vscode": "^1.1.6",
         "mocha": "^4.0.1",
-        "@types/node": "^8.0.45",
-        "@types/mocha": "^2.2.43"
+        "@types/node": "^8.0.53",
+        "@types/mocha": "^2.2.44"
     }
 }

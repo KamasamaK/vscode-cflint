@@ -2,6 +2,11 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.2.4] - 2017-11-27
+
+- Added commands to output results to a file.
+- Added new tsconfig options
+
 ## [0.2.3] - 2017-11-03
 
 - Updated engine and dependencies

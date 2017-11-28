@@ -38,6 +38,7 @@ The following are the configurable Settings (`Ctrl+Comma`) that this extension c
 - `cflint.enabled`: Enable/disable this extension.
 - `cflint.javaPath`: [*Optional*] Path to Java executable. Unnecessary if compatible Java path is defined in `JAVA_HOME` or `PATH` environment variables.
 - `cflint.jarPath`: A path to the CFLint standalone JAR file (`CFLint-*-all.jar`).
+- `cflint.outputDirectory`: A directory in which to place output files when invoking one of the output commands.
 - `cflint.runModes`: Determines when linter is run.  
 **Properties**
   - `cflint.runModes.onOpen`: Run linter whenever a CFML file is opened. [*Default*: `true`]
@@ -77,6 +78,14 @@ Used in Command Palette (`Ctrl+Shift+P`). Alternatively, can be bound to Keyboar
 - Clear all CFLint problems
 
 - View CFLint rules documentation (online)
+
+- Output CFLint text file for currently active document
+
+- Output CFLint HTML file for currently active document
+
+- Output CFLint JSON file for currently active document
+
+- Output CFLint XML file for currently active document
 
 ## Known Issues/Limitations
 
