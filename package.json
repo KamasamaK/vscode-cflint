@@ -2,12 +2,12 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.2.4",
+    "version": "0.3.0",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
     "engines": {
-        "vscode": "^1.17.0"
+        "vscode": "^1.28.0"
     },
     "repository": {
         "type": "git",
@@ -44,7 +44,8 @@
                 "cflint.enabled": {
                     "description": "Controls whether linting is enabled for CFML files.",
                     "type": "boolean",
-                    "default": true
+                    "default": true,
+                    "scope": "resource"
                 },
                 "cflint.javaPath": {
                     "description": "Overrides the Java executable that is used to run CFLint.",
@@ -52,17 +53,20 @@
                         "string",
                         "null"
                     ],
-                    "default": null
+                    "default": null,
+                    "scope": "resource"
                 },
                 "cflint.jarPath": {
                     "description": "A path to the CFLint standalone JAR file (CFLint-*-all.jar).",
                     "type": "string",
-                    "default": ""
+                    "default": "",
+                    "scope": "resource"
                 },
                 "cflint.outputDirectory": {
                     "description": "A directory in which to place output files when invoking one of the output commands",
                     "type": "string",
-                    "default": ""
+                    "default": "",
+                    "scope": "resource"
                 },
                 "cflint.runModes": {
                     "description": "When to run the linter.",
@@ -93,29 +97,34 @@
                         "onOpen": true,
                         "onSave": true,
                         "onChange": false
-                    }
+                    },
+                    "scope": "resource"
                 },
                 "cflint.typingDelay": {
                     "description": "The number of milliseconds to wait for typing to stop until linting. Only valid when runModes.onChange is true.",
                     "type": "number",
                     "default": 700,
-                    "minimum": 200
+                    "minimum": 200,
+                    "scope": "resource"
                 },
                 "cflint.linterCooldown": {
                     "description": "The minimum number of milliseconds to wait between running the linter on a document.",
                     "type": "number",
                     "default": 5000,
-                    "minimum": 500
+                    "minimum": 500,
+                    "scope": "resource"
                 },
                 "cflint.maxSimultaneousLints": {
                     "description": "The maximum number of simultaneously running lints.",
                     "type": "number",
-                    "default": 3
+                    "default": 3,
+                    "scope": "resource"
                 },
                 "cflint.altConfigFile.path": {
                     "description": "The path to an alternate rule configuration file.",
                     "type": "string",
-                    "default": ""
+                    "default": "",
+                    "scope": "resource"
                 },
                 "cflint.altConfigFile.usage": {
                     "description": "Usage of the rule config file from cflint.altConfigFile.\nfallback: Use only if no rule config is found for document being linted.\nalways: Always use.",
@@ -124,17 +133,26 @@
                         "fallback",
                         "always"
                     ],
-                    "default": "fallback"
+                    "default": "fallback",
+                    "scope": "resource"
                 },
                 "cflint.ignoreInfo": {
-                    "description": "Whether to report issues with Info severity.",
+                    "description": "Whether to report issues with Info severity as problems.",
                     "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "scope": "resource"
                 },
                 "cflint.ignoreWarnings": {
-                    "description": "Whether to report issues with Warning severity.",
+                    "description": "Whether to report issues with Warning severity as problems.",
                     "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "scope": "resource"
+                },
+                "cflint.notify.latestVersion": {
+                    "description": "Whether to notify when there is a newer version available.",
+                    "type": "boolean",
+                    "default": true,
+                    "scope": "window"
                 }
             }
         },
@@ -185,7 +203,7 @@
                 "command": "cflint.clearAllProblems"
             },
             {
-                "title": "View CFLint rules documentation (online)",
+                "title": "View CFLint rules documentation",
                 "category": "CFLint",
                 "command": "cflint.viewRulesDoc"
             },
@@ -213,29 +231,35 @@
         "jsonValidation": [
             {
                 "fileMatch": "cflint-result.json",
-                "url": "./schemas/cflint-result.schema.json"
+                "url": "./resources/schemas/cflint-result.schema.json"
             },
             {
                 "fileMatch": ".cflintrc",
-                "url": "./schemas/.cflintrc.schema.json"
+                "url": "./resources/schemas/.cflintrc.schema.json"
             }
         ]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -watch -p ./",
+        "watch": "tsc -watch -p ./",
         "postinstall": "node ./node_modules/vscode/bin/install",
         "test": "node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
-        "find-config": "1.0.0"
+        "@octokit/rest": "^15.15.1",
+        "findup-sync": "2.0.0",
+        "semver": "~5.5.1",
+        "camelcase": "5.0.0",
+        "uppercamelcase": "3.0.0"
     },
     "devDependencies": {
-        "typescript": "^2.6.2",
-        "tslint": "^5.8.0",
-        "vscode": "^1.1.6",
-        "mocha": "^4.0.1",
-        "@types/node": "^8.0.53",
-        "@types/mocha": "^2.2.44"
+        "@types/semver": "~5.5.0",
+        "@types/uppercamelcase": "3.0.0",
+        "@types/mocha": "~5.2.5",
+        "@types/node": "~8.9.5",
+        "mocha": "~5.2.0",
+        "tslint": "^5.11.0",
+        "typescript": "^3.1.3",
+        "vscode": "^1.1.21"
     }
 }

@@ -2,6 +2,17 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.3.0] - 2018-10-DD
+
+- Added code actions for ignoring rules in `.cflintrc`, transforming variable case, and var/local scoping
+- Updated `.cflintrc` schema
+- Now only explicitly uses `-configfile` when altConfigFile.path is valid
+- Added CFLint version check and notifies if below minimum or latest version
+- Added `DiagnosticTag.Unnecessary` to diagnostics for `UNUSED_LOCAL_VARIABLE`
+- Removed issue ID/code from message
+- Updated TypeScript to 3.1.3
+- Updated Tasks to 2.0.0
+
 ## [0.2.4] - 2017-11-27
 
 - Added commands to output results to a file.
