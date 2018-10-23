@@ -8,15 +8,15 @@
 
 This extension uses the **CFLint** tool to scan CFML files and provide feedback on potential issues through the editor and Problems view of VS Code. The ways in which this is triggered are configurable in the [Settings](#settings). The defaults are only to run when CFML files are opened or saved. The linter optionally takes rule configuration via a `.cflintrc` file, for which details can be found at [**CFLint**'s repo](https://github.com/cflint/CFLint#folder-based-configuration). This extension facilitates the creation and viewing of this file via [Commands](#commands). It also facilitates editing the file by utilizing the schema.
 
-Here is an example from the [CFDocs](https://github.com/foundeo/cfdocs) project using **CFLint** v1.1.0 with no rule configuration.
+Here is an example from the [CFDocs](https://github.com/foundeo/cfdocs) project using **CFLint** v1.4.1 with no rule configuration on VS Code v1.28.
 
 ![CFDocs](images/cfdocs.png)
 
-1. The status bar item for Problems. Indicates number of Error, Warning, and Info issues reported. Clicking it will bring up the Problems view. Alternatively, you can use `Ctrl`+`Shift`+`M`.
-1. The Problems view. Grouped by file, ordered by severity, line number, column number. Clicking the problem will focus the issue in the editor.  
-`[Severity icon] [Provider] [Issue ID]: [Issue Message] (line number, column number)`
-1. Highlights within the editor. Hovering reveals the message.
-1. Filter issues in Problems view.
+1. The status bar item for Problems. Indicates number of Error, Warning, and Info issues reported, respectively. Clicking it will bring up the Problems view. Alternatively, you can use `Ctrl`+`Shift`+`M`.
+2. The Problems view. Grouped by file, ordered by severity, line number, column number. Clicking the problem will focus the issue in the editor.  
+`[Quick Fixes] [Severity icon] [Provider] [Issue Message] [Issue ID] (line number, column number)`
+3. Highlights within the editor. Hovering reveals the message.
+4. Filter issues in Problems view.
 
 ### Code Actions
 
