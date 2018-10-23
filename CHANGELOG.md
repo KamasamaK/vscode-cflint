@@ -2,7 +2,7 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
-## [0.3.0] - 2018-10-DD
+## [0.3.0] - 2018-10-22
 
 - Added code actions for ignoring rules in `.cflintrc`, transforming variable case, and var/local scoping
 - Updated `.cflintrc` schema
