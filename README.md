@@ -18,7 +18,7 @@ Here is an example from the [CFDocs](https://github.com/foundeo/cfdocs) project 
 3. Highlights within the editor. Hovering reveals the message.
 4. Filter issues in Problems view.
 
-### Code Actions
+### Code Actions / Quick Fixes
 
 These are potential resolutions that are provided for each diagnostic. Aside from the rule changes in the settings file, these are largely dependent on the location given by CFLint. See [Known Issues/Limitations](#known-issueslimitations)
 
@@ -34,7 +34,7 @@ See [Commands](#commands) below.
 
 You must first install **CFLint**. You may skip the steps below if you already have them.
 
-1. Download and install latest **Java SE 8**+ [JRE](https://www.java.com/en/download/manual.jsp), or [JDK](https://jdk.java.net/) if you plan to build it yourself.
+1. Download and install latest **Java SE 8**+ [JRE](https://www.java.com/en/download/manual.jsp), or [JDK](https://adoptopenjdk.net/) if you plan to build it yourself.
 1. Download latest **CFLint** (v1.4.0+) standalone/all JAR from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Ccflint) or [the GitHub releases](https://github.com/cflint/CFLint/releases). Alternatively, build it yourself using [these instructions](https://github.com/cflint/CFLint#building-cflint). This is the JAR file that will be provided to `cflint.jarPath` in the settings.
 
 ### Extension dependencies

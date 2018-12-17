@@ -1,6 +1,6 @@
+import * as camelCase from "camelcase";
 import * as upperCamelCase from "uppercamelcase";
 
-const camelCase = require("camelcase");
 
 /**
  * Returns whether the string are equal ignoring case

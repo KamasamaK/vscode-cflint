@@ -1,9 +1,8 @@
+import * as findup from "findup-sync";
 import * as fs from "fs";
 import * as path from "path";
-import { Position, Range, TextDocument, WorkspaceConfiguration, WorkspaceEdit, window, workspace, Uri } from "vscode";
+import { Position, Range, TextDocument, Uri, window, workspace, WorkspaceConfiguration, WorkspaceEdit } from "vscode";
 import { getCFLintSettings } from "./extension";
-
-const findup = require("findup-sync");
 
 export const CONFIG_FILENAME: string = ".cflintrc";
 

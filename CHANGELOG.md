@@ -2,6 +2,16 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.3.1] - 2018-12-17
+
+- Improved rule retrieval to only fetch online at most once per hour
+- Missing or invalid path settings now prompt with an open dialog instead of asking for the path to be written out
+- Replaced some `require` with ES6 imports
+- Updated launch configuration
+- Added separate `compile` script
+- Added check to prevent linting on open event when entire workspace is being scanned by CFML extension
+- Updated TypeScript to 3.2.2
+
 ## [0.3.0] - 2018-10-22
 
 - Added code actions for ignoring rules in `.cflintrc`, transforming variable case, and var/local scoping
