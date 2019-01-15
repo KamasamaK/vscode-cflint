@@ -133,13 +133,11 @@ function alternateConfigFileExists(resource: Uri): boolean {
  * @param configDocument The document for the config file to parse
  */
 export function parseConfig(configDocument: TextDocument): Config {
-    const documentText: string = configDocument.getText();
     let parsedConfig: Config;
     try {
-        parsedConfig = JSON.parse(documentText);
+        parsedConfig = JSON.parse(configDocument.getText());
     } catch (ex) {
         window.showErrorMessage("Unable to parse configuration file.");
-        return undefined;
     }
 
     return parsedConfig;
@@ -153,6 +151,11 @@ export function parseConfig(configDocument: TextDocument): Config {
  */
 export async function addConfigRuleExclusion(document: TextDocument, ruleCode: string): Promise<boolean> {
     const configDocument: TextDocument = await getActiveConfig(document);
+
+    if (!configDocument) {
+        return false;
+    }
+
     const documentText: string = configDocument.getText();
     let parsedConfig: Config = parseConfig(configDocument);
 

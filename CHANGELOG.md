@@ -2,6 +2,11 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.3.2] - 2019-01-14
+
+- Reverted non-working check for workspace scan
+- Added some checks for `undefined` before use
+
 ## [0.3.1] - 2018-12-17
 
 - Improved rule retrieval to only fetch online at most once per hour

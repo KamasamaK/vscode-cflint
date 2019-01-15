@@ -2,7 +2,7 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
@@ -250,19 +250,20 @@
         "test": "node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
-        "@octokit/rest": "^16.2.0",
+        "@octokit/rest": "~16.3.2",
         "findup-sync": "2.0.0",
         "semver": "~5.5.1",
         "camelcase": "5.0.0",
         "uppercamelcase": "3.0.0"
     },
     "devDependencies": {
+        "@types/findup-sync": "2.0.0",
         "@types/semver": "~5.5.0",
         "@types/uppercamelcase": "3.0.0",
         "@types/mocha": "~5.2.5",
         "@types/node": "~8.9.5",
         "mocha": "~5.2.0",
-        "tslint": "^5.11.0",
+        "tslint": "^5.12.1",
         "typescript": "^3.2.2",
         "vscode": "^1.1.26"
     }

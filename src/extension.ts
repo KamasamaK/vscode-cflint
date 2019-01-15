@@ -799,10 +799,6 @@ export function activate(context: ExtensionContext): void {
         }
 
         // TODO: See https://github.com/Microsoft/vscode/issues/15178 for getting opened editors.
-        const scanningWorkspace = context.workspaceState.get<boolean>("scanningAllCfml", false);
-        if (scanningWorkspace) {
-            return;
-        }
 
         lintDocument(document);
     }));

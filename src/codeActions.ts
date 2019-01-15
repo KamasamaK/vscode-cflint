@@ -8,14 +8,18 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
      * Provide commands for the given document and range.
      *
      * @param document The document in which the command was invoked.
-     * @param range The range for which the command was invoked.
+     * @param _range The range for which the command was invoked.
      * @param context Context carrying additional information.
      * @param _token A cancellation token.
      * @return An array of commands or a thenable of such.
      */
     public async provideCodeActions(document: TextDocument, _range: Range, context: CodeActionContext, _token: CancellationToken): Promise<CodeAction[]> {
         const configDocument: TextDocument = await getActiveConfig(document);
-        const parsedConfig: Config = parseConfig(configDocument);
+        let parsedConfig: Config;
+
+        if (configDocument) {
+            parsedConfig = parseConfig(configDocument);
+        }
 
         let codeActions: CodeAction[] = [];
         context.diagnostics.filter((diagnostic: Diagnostic) => {
