@@ -27,26 +27,7 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
         }).forEach((diagnostic: Diagnostic) => {
             const ruleCode: string = diagnostic.code as string;
 
-            const configExcludeRuleCommand: Command = {
-                title: constructConfigExcludeRuleLabel(ruleCode),
-                command: "_cflint.addConfigIgnoreRule",
-                arguments: [document, ruleCode]
-            };
-            codeActions.push({
-                title: constructConfigExcludeRuleLabel(ruleCode),
-                command: configExcludeRuleCommand,
-                diagnostics: [diagnostic],
-                kind: CodeActionKind.QuickFix
-            });
-
-            /*
-            codeActions.push({
-                title: constructInlineIgnoreRuleLabel(ruleCode),
-                edit: createInlineIgnoreRuleEdit(document, diagnostic.range, ruleCode),
-                diagnostics: [diagnostic],
-                kind: CodeActionKind.QuickFix
-            });
-            */
+            // TODO: Consider setting isPreferred for code action fixes when promoted from proposed
 
             let caseConvention: string;
             switch (ruleCode) {
@@ -74,6 +55,7 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
                 default:
                     break;
             }
+
             if (caseConvention) {
                 codeActions.push({
                     title: `Transform to ${caseConvention}`,
@@ -81,9 +63,7 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
                     diagnostics: [diagnostic],
                     kind: CodeActionKind.QuickFix
                 });
-            }
-
-            if (ruleCode === "MISSING_VAR") {
+            } else if (ruleCode === "MISSING_VAR") {
                 codeActions.push({
                     title: "Var scope variable",
                     edit: varScopeEdit(document, diagnostic.range),
@@ -98,6 +78,27 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
                     kind: CodeActionKind.QuickFix
                 });
             }
+
+            const configExcludeRuleCommand: Command = {
+                title: constructConfigExcludeRuleLabel(ruleCode),
+                command: "_cflint.addConfigIgnoreRule",
+                arguments: [document, ruleCode]
+            };
+            codeActions.push({
+                title: constructConfigExcludeRuleLabel(ruleCode),
+                command: configExcludeRuleCommand,
+                diagnostics: [diagnostic],
+                kind: CodeActionKind.QuickFix
+            });
+
+            /*
+            codeActions.push({
+                title: constructInlineIgnoreRuleLabel(ruleCode),
+                edit: createInlineIgnoreRuleEdit(document, diagnostic.range, ruleCode),
+                diagnostics: [diagnostic],
+                kind: CodeActionKind.QuickFix
+            });
+            */
         });
 
         return codeActions;

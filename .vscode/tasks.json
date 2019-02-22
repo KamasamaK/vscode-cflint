@@ -17,7 +17,7 @@
 		},
 		{
 			"type": "npm",
-			"script": "compile",
+			"script": "build",
 			"group": "build",
 			"problemMatcher": "$tsc",
 			"presentation": {

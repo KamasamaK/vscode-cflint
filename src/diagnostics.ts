@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Position, Range, TextDocument, WorkspaceConfiguration, DiagnosticTag } from "vscode";
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position, Range, TextDocument, WorkspaceConfiguration } from "vscode";
 import { getCFLintSettings } from "./extension";
 import { CFLintIssue, CFLintIssueList } from "./issues";
 
@@ -26,7 +26,7 @@ export function createDiagnostics(document: TextDocument, issue: CFLintIssueList
       return diagnosticArr;
   }
 
-  for (let location of issue.locations) {
+  for (const location of issue.locations) {
       const cflintIssue: CFLintIssue = {
           id: issue.id,
           severity: issue.severity,

@@ -1,7 +1,6 @@
 import { Position, Range, TextDocument, TextEdit, TextLine, WorkspaceEdit } from "vscode";
-import { isPositionScript } from "./cfmlContext";
-import { createLineComment } from "./editUtils";
 import { transformTextCase } from "./textUtil";
+import { cfmlApi } from "../extension";
 
 export interface AutoFix {
     label: string;
@@ -34,13 +33,23 @@ export function constructInlineIgnoreRuleLabel(ruleCode: string): string {
  * @param isScript Whether the ignore rule text in the script context
  */
 function createInlineIgnoreRuleText(ruleCodes: string[], isScript: boolean): string {
+    const createLineComment = (text: string, isScript: boolean): string => {
+        return isScript ? `// ${text}` : `<!--- ${text} --->`;
+    };
+
     return createLineComment(`@CFLintIgnore ${ruleCodes.join(",")}`, isScript) + "\n";
 }
 
+/**
+ * Creates autofix for adding an inline ignore rule
+ * @param document The document in which the fix will be applied
+ * @param range The range for which the fix will be applied
+ * @param ruleCode The rule code to be ignored
+ */
 function createInlineIgnoreRuleFix(document: TextDocument, range: Range, ruleCode: string): AutoFix {
     // TODO: Check for an existing ignored rule for this line
 
-    const isScript: boolean = isPositionScript(document, range.start);
+    const isScript: boolean = cfmlApi.getContextUtils().isPositionScript(document, range.start);
     const newPosition: Position = new Position(range.start.line, 0);
 
     const inlineIgnoreRuleRange: Range = new Range(newPosition, newPosition);
@@ -62,6 +71,12 @@ function createInlineIgnoreRuleFix(document: TextDocument, range: Range, ruleCod
     return ignoreRuleAutofix;
 }
 
+/**
+ * Creates workspace edit for adding an inline ignore rule
+ * @param document The document in which the fix will be applied
+ * @param range The range for which the fix will be applied
+ * @param ruleCode The rule code to be ignored
+ */
 export function createInlineIgnoreRuleEdit(document: TextDocument, range: Range, ruleCode: string): WorkspaceEdit {
     const autofix: AutoFix = createInlineIgnoreRuleFix(document, range, ruleCode);
 
@@ -71,6 +86,12 @@ export function createInlineIgnoreRuleEdit(document: TextDocument, range: Range,
     return workspaceEdit;
 }
 
+/**
+ * Creates workspace edit for transforming the case of a word
+ * @param document The document in which the word appears
+ * @param range The range of the word
+ * @param textCase The text case to use
+ */
 export function transformCaseRuleEdit(document: TextDocument, range: Range, textCase: string): WorkspaceEdit {
     const currentWord: string = document.getText(range);
     const transformedWord: string = transformTextCase(currentWord, textCase);
@@ -81,9 +102,14 @@ export function transformCaseRuleEdit(document: TextDocument, range: Range, text
     return workspaceEdit;
 }
 
+/**
+ * Creates workspace edit for var scoping a variable
+ * @param document The document in which the variable is declared
+ * @param range The range of the variable identifier
+ */
 export function varScopeEdit(document: TextDocument, range: Range): WorkspaceEdit {
     const currentWord: string = document.getText(range);
-    const varScopedVariable: string = "var " + currentWord;
+    const varScopedVariable: string = `var ${currentWord}`;
 
     let workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
     workspaceEdit.replace(document.uri, range, varScopedVariable);
@@ -91,9 +117,14 @@ export function varScopeEdit(document: TextDocument, range: Range): WorkspaceEdi
     return workspaceEdit;
 }
 
+/**
+ * Creates workspace edit for local scoping a variable
+ * @param document The document in which the variable is declared
+ * @param range The range of the variable identifier
+ */
 export function localScopeEdit(document: TextDocument, range: Range): WorkspaceEdit {
     const currentWord: string = document.getText(range);
-    const localScopedVariable: string = "local." + currentWord;
+    const localScopedVariable: string = `local.${currentWord}`;
 
     let workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
     workspaceEdit.replace(document.uri, range, localScopedVariable);

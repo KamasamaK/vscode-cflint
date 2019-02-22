@@ -196,13 +196,12 @@ export async function addConfigRuleExclusion(document: TextDocument, ruleCode: s
     const documentRange = new Range(documentStart, configDocument.positionAt(documentText.length));
     edit.replace(configDocument.uri, documentRange, JSON.stringify(parsedConfig, null, "\t"));
 
-    workspace.applyEdit(edit).then((success: boolean) => {
-        if (success) {
-            return configDocument.save();
-        }
+    const success: boolean = await workspace.applyEdit(edit);
+    if (success) {
+        return configDocument.save();
+    }
 
-        return false;
-    });
+    return false;
 }
 
 /**
@@ -229,7 +228,7 @@ export async function showRootConfig(): Promise<boolean> {
         window.showErrorMessage("No config file could be found in the current workspace folder.", "Create Root Config").then(
             async (selection: string) => {
                 if (selection === "Create Root Config") {
-                    return createRootConfig();
+                    createRootConfig();
                 }
             }
         );

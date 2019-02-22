@@ -49,6 +49,7 @@ The following are the configurable Settings (`Ctrl`+`Comma`) that this extension
 - `cflint.javaPath`: [*Optional*] Path to Java executable. Unnecessary if compatible Java path is defined in `JAVA_HOME` or `PATH` environment variables.
 - `cflint.jarPath`: A path to the CFLint standalone JAR file (`CFLint-*-all.jar`).
 - `cflint.outputDirectory`: A directory in which to place output files when invoking one of the output commands.
+- `cflint.exclude`: Glob patterns for excluding files and folders.
 - `cflint.runModes`: Determines when linter is run.  
 **Properties**
   - `cflint.runModes.onOpen`: Run linter whenever a CFML file is opened. [*Default*: `true`]

@@ -20,7 +20,7 @@ export function equalsIgnoreCase(string1: string, string2: string): boolean {
  * @param textCase The case of the transformed text
  */
 export function transformTextCase(word: string, textCase: string): string {
-    let transformedText: string = word;
+    let transformedText: string;
     switch (textCase) {
         case "camelCase":
             transformedText = camelCase(word);
@@ -32,6 +32,7 @@ export function transformTextCase(word: string, textCase: string): string {
             transformedText = word.toLocaleLowerCase();
             break;
         default:
+            transformedText = word;
             break;
     }
 

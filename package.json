@@ -2,12 +2,12 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
     "engines": {
-        "vscode": "^1.28.0"
+        "vscode": "^1.31.0"
     },
     "repository": {
         "type": "git",
@@ -67,6 +67,16 @@
                     "default": "",
                     "scope": "resource"
                 },
+                "cflint.exclude": {
+                    "description": "Glob patterns for excluding files and folders",
+                    "type": "array",
+                    "items": {
+                        "description": "A glob pattern for excluding files and folders.",
+                        "type": "string"
+                    },
+                    "default": [],
+                    "scope": "resource"
+                },
                 "cflint.runModes": {
                     "description": "When to run the linter.",
                     "type": "object",
@@ -117,6 +127,7 @@
                     "description": "The maximum number of simultaneously running lints.",
                     "type": "number",
                     "default": 3,
+                    "minimum": 1,
                     "scope": "resource"
                 },
                 "cflint.altConfigFile.path": {
@@ -243,28 +254,37 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "clean": "rimraf out *.vsix",
+        "build": "tsc -p ./",
         "watch": "tsc -watch -p ./",
+        "rebuild": "npm run clean && npm run build",
+        "pack": "vsce package",
+        "publish": "vsce publish",
+        "vscode:prepublish": "npm run build",
         "postinstall": "node ./node_modules/vscode/bin/install",
         "test": "node ./node_modules/vscode/bin/test"
     },
     "dependencies": {
-        "@octokit/rest": "~16.3.2",
+        "@octokit/rest": "~16.16.0",
         "findup-sync": "2.0.0",
+        "micromatch": "3.1.10",
         "semver": "~5.5.1",
         "camelcase": "5.0.0",
         "uppercamelcase": "3.0.0"
     },
     "devDependencies": {
-        "@types/findup-sync": "2.0.0",
+        "@types/findup-sync": "2.0.1",
         "@types/semver": "~5.5.0",
         "@types/uppercamelcase": "3.0.0",
-        "@types/mocha": "~5.2.5",
-        "@types/node": "~8.9.5",
+        "@types/micromatch": "3.1.0",
+        "@types/mocha": "~5.2.6",
+        "@types/node": "~10.3.6",
         "mocha": "~5.2.0",
+        "rimraf": "^2.6.3",
         "tslint": "^5.12.1",
-        "typescript": "^3.2.2",
-        "vscode": "^1.1.26"
+        "typescript-tslint-plugin": "^0.3.1",
+        "typescript": "^3.3.3333",
+        "vsce": "^1.57.1",
+        "vscode": "^1.1.30"
     }
 }

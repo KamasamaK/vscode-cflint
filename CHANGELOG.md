@@ -2,6 +2,12 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.3.3] - 2019-02-21
+
+- Replaced deprecated use of `Buffer`
+- Moved ignore code actions below fixes
+- Added setting `cflint.exclude` to exclude specified globs from linting
+
 ## [0.3.2] - 2019-01-14
 
 - Reverted non-working check for workspace scan

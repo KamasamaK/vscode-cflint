@@ -1,15 +1,17 @@
 import * as Octokit from "@octokit/rest";
 import { ChildProcess, spawn } from "child_process";
 import * as fs from "fs";
+import * as micromatch from "micromatch";
 import * as path from "path";
 import * as semver from "semver";
-import { commands, ConfigurationTarget, Diagnostic, DiagnosticCollection, DocumentFilter, ExtensionContext, languages, StatusBarAlignment, StatusBarItem, TextDocument, TextDocumentChangeEvent, TextEditor, Uri, window, workspace, WorkspaceConfiguration, OpenDialogOptions } from "vscode";
+import { commands, ConfigurationTarget, Diagnostic, DiagnosticCollection, DocumentFilter, env, ExtensionContext, extensions, languages, OpenDialogOptions, StatusBarAlignment, StatusBarItem, TextDocument, TextDocumentChangeEvent, TextEditor, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
+import { CFMLApiV0 } from "../typings/cfmlApi";
 import CFLintCodeActionProvider from "./codeActions";
 import { addConfigRuleExclusion, CONFIG_FILENAME, createCwdConfig, createRootConfig, getConfigFilePath, showActiveConfig, showRootConfig } from "./config";
 import { createDiagnostics } from "./diagnostics";
 import { CFLintIssueList } from "./issues";
+import { ThrottledDelayer } from "./utils/async";
 import { getCurrentDateTimeFormatted } from "./utils/dateUtil";
-import { Delayer } from "./utils/delayer";
 
 const octokit = new Octokit();
 const gitRepoInfo = {
@@ -20,6 +22,8 @@ const gitRepoInfo = {
 const httpSuccessStatusCode: number = 200;
 
 export let extensionPath: string;
+export let logPath: string;
+export let cfmlApi: CFMLApiV0;
 
 export const LANGUAGE_IDS = ["cfml"];
 let DOCUMENT_SELECTOR: DocumentFilter[] = [];
@@ -39,13 +43,13 @@ LANGUAGE_IDS.forEach((languageId: string) => {
 });
 
 const settingsSection = "cflint";
-const minimumTypingDelay: number = 200;
-const minimumCooldown: number = 500;
+let minimumTypingDelay: number;
+let minimumCooldown: number;
 
 let diagnosticCollection: DiagnosticCollection;
-let typingDelayer: Map<Uri, Delayer<void>>;
+let typingDelayer: Map<Uri, ThrottledDelayer<void>>;
 let linterCooldowns: Map<Uri, number>;
-let pendingLints: Map<Uri, ChildProcess>;
+let runningLints: Map<Uri, ChildProcess>;
 let queuedLints: Map<Uri, TextDocument>;
 let statusBarItem: StatusBarItem;
 let cflintState: State;
@@ -69,7 +73,7 @@ enum OutputFormat {
     Xml = "xml"
 }
 
-const minimumVersion: string = "1.4.0";
+const minimumCFLintVersion: string = "1.4.0";
 let versionPrompted: boolean = false;
 
 /**
@@ -116,6 +120,30 @@ async function disable(): Promise<void> {
 function isLinterEnabled(resource: Uri): boolean {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
     return cflintSettings.get<boolean>("enabled", true);
+}
+
+/**
+ * Checks whether the given document matches the set of excluded globs.
+ *
+ * @param document The document to check against
+ */
+function shouldExcludeDocument(document: TextDocument): boolean {
+    const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
+    const excludeGlobs = cflintSettings.get<string[]>("exclude", []);
+
+    return micromatch.some(document.fileName, excludeGlobs);
+}
+
+/**
+ * Checks whether the given document should be linted.
+ *
+ * @param document The document to check against
+ */
+function shouldLintDocument(document: TextDocument): boolean {
+    return isLinterEnabled(document.uri)
+        && isCfmlLanguage(document.languageId)
+        && !shouldExcludeDocument(document)
+        && document.uri.scheme !== "git";
 }
 
 /**
@@ -184,7 +212,7 @@ function findJavaExecutable(resource: Uri): string {
     // Then search JAVA_HOME
     const envJavaHome = process.env["JAVA_HOME"];
     if (envJavaHome) {
-        let javaPath = path.join(envJavaHome, "bin", javaBinName);
+        const javaPath = path.join(envJavaHome, "bin", javaBinName);
 
         if (javaPath && fs.existsSync(javaPath)) {
             return javaPath;
@@ -194,8 +222,8 @@ function findJavaExecutable(resource: Uri): string {
     // Then search PATH parts
     const envPath = process.env["PATH"];
     if (envPath) {
-        let pathParts: string[] = envPath.split(path.delimiter);
-        for (let pathPart of pathParts) {
+        const pathParts: string[] = envPath.split(path.delimiter);
+        for (const pathPart of pathParts) {
             let javaPath: string = path.join(pathPart, javaBinName);
             if (fs.existsSync(javaPath)) {
                 return javaPath;
@@ -365,7 +393,7 @@ function lintDocument(document: TextDocument): void {
         return;
     }
 
-    if (isOnCooldown(document) || pendingLints.has(document.uri) || queuedLints.has(document.uri)) {
+    if (isOnCooldown(document) || runningLints.has(document.uri) || queuedLints.has(document.uri)) {
         return;
     }
 
@@ -373,7 +401,7 @@ function lintDocument(document: TextDocument): void {
 
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
     const maxSimultaneousLints: number = cflintSettings.get<number>("maxSimultaneousLints");
-    if (pendingLints.size > maxSimultaneousLints) {
+    if (runningLints.size >= maxSimultaneousLints) {
         queuedLints.set(document.uri, document);
         return;
     }
@@ -391,6 +419,7 @@ function onLintDocument(document: TextDocument): void {
 
     const javaExecutable: string = findJavaExecutable(document.uri);
 
+    const options = workspace.rootPath ? { cwd: workspace.rootPath } : undefined;
     let javaArgs: string[] = [
         "-jar",
         cflintSettings.get<string>("jarPath", ""),
@@ -411,39 +440,44 @@ function onLintDocument(document: TextDocument): void {
     }
 
     let output: string = "";
-    let childProcess: ChildProcess = spawn(javaExecutable, javaArgs);
-    console.log(`[${getCurrentDateTimeFormatted()}] ${javaExecutable} ${javaArgs.join(" ")}`);
 
-    if (childProcess.pid) {
-        pendingLints.set(document.uri, childProcess);
-        childProcess.stdin.write(document.getText(), "utf-8");
-        childProcess.stdin.end();
-        updateState(State.Running);
+    try {
+        let childProcess: ChildProcess = spawn(javaExecutable, javaArgs, options);
+        console.log(`[${getCurrentDateTimeFormatted()}] ${javaExecutable} ${javaArgs.join(" ")}`);
 
-        childProcess.stdout.on("data", (data: Buffer) => {
-            output += data;
+        if (childProcess.pid) {
+            runningLints.set(document.uri, childProcess);
+            childProcess.stdin.write(document.getText(), "utf-8");
+            childProcess.stdin.end();
+            updateState(State.Running);
+
+            childProcess.stdout.on("data", (data: Buffer) => {
+                output += data;
+            });
+            childProcess.stdout.on("end", () => {
+                if (output && output.length > 0) {
+                    cfLintResult(document, output);
+                }
+                runningLints.delete(document.uri);
+                if (queuedLints.size > 0) {
+                    const nextKey: Uri = queuedLints.keys().next().value;
+                    onLintDocument(queuedLints.get(nextKey));
+                    queuedLints.delete(nextKey);
+                }
+                if (runningLints.size === 0) {
+                    updateState(State.Stopped);
+                }
+            });
+        }
+
+        childProcess.on("error", (err: Error) => {
+            window.showErrorMessage(`There was a problem with CFLint. ${err.message}`);
+            console.error(`[${getCurrentDateTimeFormatted()}] ${childProcess}`);
+            console.error(`[${getCurrentDateTimeFormatted()}] ${err}`);
         });
-        childProcess.stdout.on("end", () => {
-            if (output && output.length > 0) {
-                cfLintResult(document, output);
-            }
-            pendingLints.delete(document.uri);
-            if (queuedLints.size > 0) {
-                const nextKey: Uri = queuedLints.keys().next().value;
-                onLintDocument(queuedLints.get(nextKey));
-                queuedLints.delete(nextKey);
-            }
-            if (pendingLints.size === 0) {
-                updateState(State.Stopped);
-            }
-        });
+    } catch (err) {
+        console.error(err);
     }
-
-    childProcess.on("error", (err: Error) => {
-        window.showErrorMessage(`There was a problem with CFLint. ${err.message}`);
-        console.error(`[${getCurrentDateTimeFormatted()}] ${childProcess}`);
-        console.error(`[${getCurrentDateTimeFormatted()}] ${err}`);
-    });
 }
 
 /**
@@ -526,7 +560,7 @@ function outputLintDocument(document: TextDocument, format: OutputFormat = Outpu
         updateState(State.Running);
 
         childProcess.on("exit", () => {
-            if (pendingLints.size === 0) {
+            if (runningLints.size === 0) {
                 updateState(State.Stopped);
             }
         });
@@ -544,7 +578,7 @@ function outputLintDocument(document: TextDocument, format: OutputFormat = Outpu
  * Displays a notification message recommending an upgrade of CFLint
  */
 async function notifyForMinimumVersion(): Promise<void> {
-    window.showErrorMessage(`You must upgrade CFLint to ${minimumVersion} or higher.`, "Download").then(
+    window.showErrorMessage(`You must upgrade CFLint to ${minimumCFLintVersion} or higher.`, "Download").then(
         (selection: string) => {
             if (selection === "Download") {
                 showCFLintReleases();
@@ -599,7 +633,7 @@ function cfLintResult(document: TextDocument, output: string): void {
     const parsedOutput = JSON.parse(output);
 
     if (!versionPrompted) {
-        if (!parsedOutput.hasOwnProperty("version") || semver.lt(parsedOutput.version, minimumVersion)) {
+        if (!parsedOutput.hasOwnProperty("version") || semver.lt(parsedOutput.version, minimumCFLintVersion)) {
             notifyForMinimumVersion();
         } else {
             checkForLatestRelease(parsedOutput.version);
@@ -635,7 +669,7 @@ async function showRuleDocumentation(_ruleId?: string): Promise<void> {
             });
 
             if (cflintRulesResult && cflintRulesResult.hasOwnProperty("status") && cflintRulesResult.status === httpSuccessStatusCode && cflintRulesResult.data.type === "file") {
-                const resultText: string = new Buffer(cflintRulesResult.data.content, cflintRulesResult.data.encoding).toString("utf8");
+                const resultText: string = Buffer.from(cflintRulesResult.data.content, cflintRulesResult.data.encoding).toString("utf8");
 
                 fs.writeFileSync(cflintRulesFilePath, resultText);
 
@@ -649,7 +683,6 @@ async function showRuleDocumentation(_ruleId?: string): Promise<void> {
     const cflintRulesUri: Uri = Uri.file(cflintRulesFilePath);
 
     commands.executeCommand("markdown.showPreview", cflintRulesUri);
-    // commands.executeCommand("vscode.open", cflintRulesUri);
 }
 
 /**
@@ -658,7 +691,7 @@ async function showRuleDocumentation(_ruleId?: string): Promise<void> {
 async function showCFLintReleases(): Promise<void> {
     const cflintReleasesURL: string = "https://github.com/cflint/CFLint/releases";
     const cflintReleasesUri: Uri = Uri.parse(cflintReleasesURL);
-    commands.executeCommand("vscode.open", cflintReleasesUri);
+    env.openExternal(cflintReleasesUri);
 }
 
 /**
@@ -701,9 +734,7 @@ function updateStatusBarItem(editor: TextEditor): void {
             break;
     }
 
-    showStatusBarItem(
-        editor && isLinterEnabled(editor.document.uri) && isCfmlLanguage(editor.document.languageId) && editor.document.uri.scheme !== "git"
-    );
+    showStatusBarItem(editor && shouldLintDocument(editor.document));
 }
 
 /**
@@ -721,18 +752,23 @@ function initializeSettings(): void {
  *
  * @param context The context object for this extension.
  */
-export function activate(context: ExtensionContext): void {
+export async function activate(context: ExtensionContext): Promise<void> {
     console.log(`[${getCurrentDateTimeFormatted()}] cflint is active!`);
+
+    const thisExtension = extensions.getExtension("KamasamaK.vscode-cflint");
+    minimumTypingDelay = thisExtension.packageJSON.contributes.configuration.properties["cflint.typingDelay"].minimum;
+    minimumCooldown = thisExtension.packageJSON.contributes.configuration.properties["cflint.linterCooldown"].minimum;
 
     initializeSettings();
 
     extensionPath = context.extensionPath;
+    logPath = context.logPath;
 
     diagnosticCollection = languages.createDiagnosticCollection("cflint");
 
-    typingDelayer = new Map<Uri, Delayer<void>>();
+    typingDelayer = new Map<Uri, ThrottledDelayer<void>>();
     linterCooldowns = new Map<Uri, number>();
-    pendingLints = new Map<Uri, ChildProcess>();
+    runningLints = new Map<Uri, ChildProcess>();
     queuedLints = new Map<Uri, TextDocument>();
 
     statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 0);
@@ -756,8 +792,7 @@ export function activate(context: ExtensionContext): void {
             return;
         }
 
-        if (!isLinterEnabled(window.activeTextEditor.document.uri)) {
-            window.showWarningMessage("cflint is disabled");
+        if (!shouldLintDocument(window.activeTextEditor.document)) {
             return;
         }
 
@@ -780,12 +815,23 @@ export function activate(context: ExtensionContext): void {
         outputLintDocument(window.activeTextEditor.document, OutputFormat.Xml);
     }));
 
-    // TODO: Add command for running linter for all opened CFML files. Needs refactoring.
+    const cfmlExt = extensions.getExtension("KamasamaK.vscode-cfml");
+    if (!cfmlExt.isActive) {
+        await cfmlExt.activate();
+    }
+
+    try {
+        cfmlApi = cfmlExt.exports.getAPI(0);
+    } catch (err) {
+        console.error(err);
+    }
+
+    // TODO: Add command for running linter for all opened CFML files. Needs refactoring. Needs API for opened editors.
 
     context.subscriptions.push(workspace.onDidOpenTextDocument((document: TextDocument) => {
         let cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
         let runModes: RunModes = cflintSettings.get("runModes");
-        if (!isCfmlLanguage(document.languageId) || !isLinterEnabled(document.uri) || !runModes.onOpen) {
+        if (!shouldLintDocument(document) || !runModes.onOpen) {
             return;
         }
 
@@ -793,8 +839,7 @@ export function activate(context: ExtensionContext): void {
             return;
         }
 
-        // Exclude files opened by vscode for Git
-        if (document.uri.scheme === "git") {
+        if (cfmlApi && cfmlApi.isBulkCaching()) {
             return;
         }
 
@@ -807,7 +852,7 @@ export function activate(context: ExtensionContext): void {
         let cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
         let runModes: RunModes = cflintSettings.get("runModes");
 
-        if (!isCfmlLanguage(document.languageId) || !isLinterEnabled(document.uri) || !runModes.onSave) {
+        if (!shouldLintDocument(document) || !runModes.onSave) {
             return;
         }
 
@@ -817,24 +862,24 @@ export function activate(context: ExtensionContext): void {
     context.subscriptions.push(workspace.onDidChangeTextDocument((evt: TextDocumentChangeEvent) => {
         let cflintSettings: WorkspaceConfiguration = getCFLintSettings(evt.document.uri);
         let runModes: RunModes = cflintSettings.get("runModes");
-        if (!isCfmlLanguage(evt.document.languageId) || !isLinterEnabled(evt.document.uri) || !runModes.onChange) {
+        if (!shouldLintDocument(evt.document) || !runModes.onChange) {
             return;
         }
 
-        // Exclude files opened by vscode for Git
-        if (evt.document.uri.scheme === "git") {
-            return;
-        }
-
-        let delayer: Delayer<void> = typingDelayer.get(evt.document.uri);
+        let delayer: ThrottledDelayer<void> = typingDelayer.get(evt.document.uri);
         if (!delayer) {
-            let typingDelay: number = cflintSettings.get<number>("typingDelay");
-            typingDelay = Math.max(typingDelay, minimumTypingDelay);
-            delayer = new Delayer<void>(typingDelay);
+            let typingDelay: number;
+            try {
+                typingDelay = cflintSettings.get<number>("typingDelay");
+                typingDelay = Math.max(typingDelay, minimumTypingDelay);
+            } catch (err) {
+                typingDelay = minimumTypingDelay;
+            }
+            delayer = new ThrottledDelayer<void>(typingDelay);
             typingDelayer.set(evt.document.uri, delayer);
         }
 
-        delayer.trigger(() => {
+        delayer.trigger(async () => {
             lintDocument(evt.document);
             typingDelayer.delete(evt.document.uri);
         });
@@ -851,15 +896,15 @@ export function activate(context: ExtensionContext): void {
         }
 
         // Clear everything for file when closed
-        if (pendingLints.has(document.uri)) {
-            pendingLints.get(document.uri).kill();
-            pendingLints.delete(document.uri);
+        if (runningLints.has(document.uri)) {
+            runningLints.get(document.uri).kill();
+            runningLints.delete(document.uri);
         }
         diagnosticCollection.delete(document.uri);
         linterCooldowns.delete(document.uri);
         queuedLints.delete(document.uri);
 
-        if (pendingLints.size === 0) {
+        if (runningLints.size === 0) {
             updateState(State.Stopped);
         }
     }));
