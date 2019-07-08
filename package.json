@@ -2,12 +2,12 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
     "engines": {
-        "vscode": "^1.31.0"
+        "vscode": "^1.32.0"
     },
     "repository": {
         "type": "git",
@@ -37,6 +37,7 @@
     "main": "./out/src/extension",
     "contributes": {
         "configuration": {
+            "id": "cflint",
             "type": "object",
             "title": "CFLint",
             "properties": {
@@ -68,7 +69,7 @@
                     "scope": "resource"
                 },
                 "cflint.exclude": {
-                    "description": "Glob patterns for excluding files and folders",
+                    "description": "Glob patterns for excluding files and folders. The pattern is based on the workspace folder being the root.",
                     "type": "array",
                     "items": {
                         "description": "A glob pattern for excluding files and folders.",
@@ -260,31 +261,30 @@
         "rebuild": "npm run clean && npm run build",
         "pack": "vsce package",
         "publish": "vsce publish",
-        "vscode:prepublish": "npm run build",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "node ./node_modules/vscode/bin/test"
+        "vscode:prepublish": "npm run build"
     },
     "dependencies": {
-        "@octokit/rest": "~16.16.0",
+        "@octokit/rest": "~16.28.2",
         "findup-sync": "2.0.0",
         "micromatch": "3.1.10",
-        "semver": "~5.5.1",
-        "camelcase": "5.0.0",
+        "semver": "~6.1.3",
+        "camelcase": "5.3.1",
         "uppercamelcase": "3.0.0"
     },
     "devDependencies": {
-        "@types/findup-sync": "2.0.1",
-        "@types/semver": "~5.5.0",
+        "@types/findup-sync": "2.0.2",
+        "@types/semver": "~6.0.1",
         "@types/uppercamelcase": "3.0.0",
         "@types/micromatch": "3.1.0",
-        "@types/mocha": "~5.2.6",
-        "@types/node": "~10.3.6",
+        "@types/mocha": "~5.2.7",
+        "@types/node": "~10.11.7",
+        "@types/vscode": "~1.32.0",
         "mocha": "~5.2.0",
         "rimraf": "^2.6.3",
-        "tslint": "^5.12.1",
-        "typescript-tslint-plugin": "^0.3.1",
-        "typescript": "^3.3.3333",
-        "vsce": "^1.57.1",
-        "vscode": "^1.1.30"
+        "tslint": "^5.18.0",
+        "typescript-tslint-plugin": "^0.5.3",
+        "typescript": "^3.5.2",
+        "vsce": "^1.64.0",
+        "vscode-test": "^1.0.0"
     }
 }

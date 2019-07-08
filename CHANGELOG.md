@@ -2,6 +2,11 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.3.4] - 2019-07-08
+
+- Updated usage for setting `cflint.exclude` to use glob relative to the workspace folder
+- Set `isPreferred` for preferred code actions
+
 ## [0.3.3] - 2019-02-21
 
 - Replaced deprecated use of `Buffer`

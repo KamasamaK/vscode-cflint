@@ -3,9 +3,12 @@ import { Config, getActiveConfig, parseConfig } from "./config";
 import { CFLINT_DIAGNOSTIC_SOURCE } from "./diagnostics";
 import { constructConfigExcludeRuleLabel, localScopeEdit, transformCaseRuleEdit, varScopeEdit } from "./utils/autoFix";
 
+/**
+ * The code action provider class implements code actions for CFLint issues.
+ */
 export default class CFLintCodeActionProvider implements CodeActionProvider {
     /**
-     * Provide commands for the given document and range.
+     * Provide code actions for the given document and range.
      *
      * @param document The document in which the command was invoked.
      * @param _range The range for which the command was invoked.
@@ -26,8 +29,6 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
             return diagnostic.source === CFLINT_DIAGNOSTIC_SOURCE;
         }).forEach((diagnostic: Diagnostic) => {
             const ruleCode: string = diagnostic.code as string;
-
-            // TODO: Consider setting isPreferred for code action fixes when promoted from proposed
 
             let caseConvention: string;
             switch (ruleCode) {
@@ -61,7 +62,8 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
                     title: `Transform to ${caseConvention}`,
                     edit: transformCaseRuleEdit(document, diagnostic.range, caseConvention),
                     diagnostics: [diagnostic],
-                    kind: CodeActionKind.QuickFix
+                    kind: CodeActionKind.QuickFix,
+                    isPreferred: true
                 });
             } else if (ruleCode === "MISSING_VAR") {
                 codeActions.push({

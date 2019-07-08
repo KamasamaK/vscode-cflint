@@ -130,8 +130,9 @@ function isLinterEnabled(resource: Uri): boolean {
 function shouldExcludeDocument(document: TextDocument): boolean {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
     const excludeGlobs = cflintSettings.get<string[]>("exclude", []);
+    const relativePath = workspace.asRelativePath(document.uri);
 
-    return micromatch.some(document.fileName, excludeGlobs);
+    return micromatch.some(relativePath, excludeGlobs);
 }
 
 /**
