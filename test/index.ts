@@ -10,13 +10,13 @@
 // to report the results back to the caller. When the tests are finished, return
 // a possible error to the callback or null if none.
 
-import * as Mocha from "mocha";
+import Mocha from "mocha";
 
 // You can directly control Mocha options by uncommenting the following lines
 // See https://github.com/mochajs/mocha/wiki/Using-mocha-programmatically#set-options for more info
 const mocha = new Mocha({
     ui: "tdd", 		// the TDD UI is being used in extension.test.ts (suite, test, etc.)
-    useColors: true // colored output from test results
+    color: true // colored output from test results
 });
 
 module.exports = mocha;

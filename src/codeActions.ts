@@ -24,7 +24,7 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
             parsedConfig = parseConfig(configDocument);
         }
 
-        let codeActions: CodeAction[] = [];
+        const codeActions: CodeAction[] = [];
         context.diagnostics.filter((diagnostic: Diagnostic) => {
             return diagnostic.source === CFLINT_DIAGNOSTIC_SOURCE;
         }).forEach((diagnostic: Diagnostic) => {
@@ -34,19 +34,19 @@ export default class CFLintCodeActionProvider implements CodeActionProvider {
             switch (ruleCode) {
                 case "VAR_INVALID_NAME": case "VAR_ALLCAPS_NAME":
                     caseConvention = "camelCase";
-                    if (parsedConfig && parsedConfig.hasOwnProperty("parameters") && parsedConfig.parameters.hasOwnProperty("VariableNameChecker.case")) {
+                    if (parsedConfig?.parameters?.hasOwnProperty("VariableNameChecker.case")) {
                         caseConvention = parsedConfig.parameters["VariableNameChecker.case"];
                     }
                     break;
                 case "METHOD_INVALID_NAME": case "METHOD_ALLCAPS_NAME":
                     caseConvention = "camelCase";
-                    if (parsedConfig && parsedConfig.hasOwnProperty("parameters") && parsedConfig.parameters.hasOwnProperty("MethodNameChecker.case")) {
+                    if (parsedConfig?.parameters?.hasOwnProperty("MethodNameChecker.case")) {
                         caseConvention = parsedConfig.parameters["MethodNameChecker.case"];
                     }
                     break;
                 case "ARGUMENT_INVALID_NAME": case "ARGUMENT_ALLCAPS_NAME":
                     caseConvention = "camelCase";
-                    if (parsedConfig && parsedConfig.hasOwnProperty("parameters") && parsedConfig.parameters.hasOwnProperty("ArgumentNameChecker.case")) {
+                    if (parsedConfig?.parameters?.hasOwnProperty("ArgumentNameChecker.case")) {
                         caseConvention = parsedConfig.parameters["ArgumentNameChecker.case"];
                     }
                     break;

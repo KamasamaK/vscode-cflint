@@ -2,6 +2,16 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.3.5] - 2022-01-23
+
+- Utilize output channel
+- Allowed `cflint.javaPath` setting to be directory instead of just file path
+- Changed path configuration scopes to be `machine-overridable`
+- Restricted display of commands with `when` clauses
+- Fixed possible issue when not also using `KamasamaK.vscode-cfml` extension
+- Added Codicons for commands
+- Migrate TSLint to ESLint
+
 ## [0.3.4] - 2019-07-08
 
 - Updated usage for setting `cflint.exclude` to use glob relative to the workspace folder

@@ -1,5 +1,5 @@
-import * as camelCase from "camelcase";
-import * as upperCamelCase from "uppercamelcase";
+import camelCase from "camelcase";
+import upperCamelCase from "uppercamelcase";
 
 
 /**

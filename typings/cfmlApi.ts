@@ -50,7 +50,7 @@ export interface DocumentStateContext {
     stringEmbeddedCfmlRanges?: vscode.Range[];
     sanitizedDocumentText: string;
     component?: Component;
-    userEngine: Object; // CFMLEngine
+    userEngine: object; // CFMLEngine
 }
 
 export interface Variable {
@@ -108,7 +108,7 @@ export enum Scope {
     Variables = "variables"
 }
 
-export interface Properties extends Map<string, Property> { }
+export type Properties = Map<string, Property>
 
 export interface Property {
     name: string;
@@ -123,7 +123,7 @@ export interface Property {
     default?: string;
 }
 
-export interface ComponentFunctions extends Map<string, UserFunction> { }
+export type ComponentFunctions = Map<string, UserFunction>
 
 export interface UserFunction extends Function {
     access: Access;

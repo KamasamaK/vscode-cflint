@@ -1,4 +1,6 @@
 .sonarlint/**
+.github/**
+.history/**
 .vscode/**
 .vscode-test/**
 out/test/**
@@ -6,5 +8,8 @@ test/**
 src/**
 **/*.map
 .gitignore
+.eslintignore
+.eslintrc.js
+.markdownlint.json
 tsconfig.json
-tslint.json
+webpack.config.js

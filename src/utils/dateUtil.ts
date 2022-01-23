@@ -21,7 +21,7 @@ function getCurrentDateFormatted(): string {
  * @param includeMilliseconds Whether to display milliseconds
  * @return Formatted time
  */
-function getCurrentTimeFormatted(includeMilliseconds: boolean = false): string {
+function getCurrentTimeFormatted(includeMilliseconds = false): string {
     const currDate = new Date();
 
     let hours: string = currDate.getHours().toString();

@@ -1,29 +1,35 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "npm",
-			"script": "watch",
-			"problemMatcher": "$tsc-watch",
-			"isBackground": true,
-			"presentation": {
-				"reveal": "never",
-				"panel": "dedicated"
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"type": "npm",
-			"script": "build",
-			"group": "build",
-			"problemMatcher": "$tsc",
-			"presentation": {
-				"reveal": "never",
-				"panel": "dedicated"
-			}
-		}
-	]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "watch",
+            "problemMatcher": "$tsc-watch",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "npm",
+            "script": "build",
+            "group": "build",
+            "problemMatcher": "$tsc",
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "type": "npm",
+            "script": "lint",
+            "group": "build",
+            "problemMatcher": ["$eslint-stylish"]
+        }
+    ]
 }

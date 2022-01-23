@@ -80,7 +80,7 @@ function createInlineIgnoreRuleFix(document: TextDocument, range: Range, ruleCod
 export function createInlineIgnoreRuleEdit(document: TextDocument, range: Range, ruleCode: string): WorkspaceEdit {
     const autofix: AutoFix = createInlineIgnoreRuleFix(document, range, ruleCode);
 
-    let workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
+    const workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
     workspaceEdit.set(document.uri, autofix.edits);
 
     return workspaceEdit;
@@ -96,7 +96,7 @@ export function transformCaseRuleEdit(document: TextDocument, range: Range, text
     const currentWord: string = document.getText(range);
     const transformedWord: string = transformTextCase(currentWord, textCase);
 
-    let workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
+    const workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
     workspaceEdit.replace(document.uri, range, transformedWord);
 
     return workspaceEdit;
@@ -109,9 +109,9 @@ export function transformCaseRuleEdit(document: TextDocument, range: Range, text
  */
 export function varScopeEdit(document: TextDocument, range: Range): WorkspaceEdit {
     const currentWord: string = document.getText(range);
-    const varScopedVariable: string = `var ${currentWord}`;
+    const varScopedVariable = `var ${currentWord}`;
 
-    let workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
+    const workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
     workspaceEdit.replace(document.uri, range, varScopedVariable);
 
     return workspaceEdit;
@@ -124,10 +124,12 @@ export function varScopeEdit(document: TextDocument, range: Range): WorkspaceEdi
  */
 export function localScopeEdit(document: TextDocument, range: Range): WorkspaceEdit {
     const currentWord: string = document.getText(range);
-    const localScopedVariable: string = `local.${currentWord}`;
+    const localScopedVariable = `local.${currentWord}`;
 
-    let workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
+    const workspaceEdit: WorkspaceEdit = new WorkspaceEdit();
     workspaceEdit.replace(document.uri, range, localScopedVariable);
 
     return workspaceEdit;
 }
+
+// TODO: OUTPUT_ATTR

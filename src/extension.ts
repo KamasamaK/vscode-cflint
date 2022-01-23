@@ -1,10 +1,11 @@
-import * as Octokit from "@octokit/rest";
+import { Octokit } from "@octokit/rest";
 import { ChildProcess, spawn } from "child_process";
 import * as fs from "fs";
 import * as micromatch from "micromatch";
 import * as path from "path";
 import * as semver from "semver";
-import { commands, ConfigurationTarget, Diagnostic, DiagnosticCollection, DocumentFilter, env, ExtensionContext, extensions, languages, OpenDialogOptions, StatusBarAlignment, StatusBarItem, TextDocument, TextDocumentChangeEvent, TextEditor, Uri, window, workspace, WorkspaceConfiguration } from "vscode";
+import { commands, ConfigurationTarget, Diagnostic, DiagnosticCollection, DocumentFilter, env, ExtensionContext, extensions, languages, OpenDialogOptions,
+    StatusBarAlignment, StatusBarItem, TextDocument, TextDocumentChangeEvent, TextEditor, Uri, window, workspace, WorkspaceConfiguration, OutputChannel, FileType } from "vscode";
 import { CFMLApiV0 } from "../typings/cfmlApi";
 import CFLintCodeActionProvider from "./codeActions";
 import { addConfigRuleExclusion, CONFIG_FILENAME, createCwdConfig, createRootConfig, getConfigFilePath, showActiveConfig, showRootConfig } from "./config";
@@ -12,6 +13,7 @@ import { createDiagnostics } from "./diagnostics";
 import { CFLintIssueList } from "./issues";
 import { ThrottledDelayer } from "./utils/async";
 import { getCurrentDateTimeFormatted } from "./utils/dateUtil";
+import { fileExists } from "./utils/fileUtils";
 
 const octokit = new Octokit();
 const gitRepoInfo = {
@@ -19,14 +21,14 @@ const gitRepoInfo = {
     repo: "CFLint",
     defaultBranch: "master"
 };
-const httpSuccessStatusCode: number = 200;
+const httpSuccessStatusCode = 200;
 
-export let extensionPath: string;
-export let logPath: string;
+export let extensionContext: ExtensionContext;
+export let outputChannel: OutputChannel;
 export let cfmlApi: CFMLApiV0;
 
 export const LANGUAGE_IDS = ["cfml"];
-let DOCUMENT_SELECTOR: DocumentFilter[] = [];
+const DOCUMENT_SELECTOR: DocumentFilter[] = [];
 LANGUAGE_IDS.forEach((languageId: string) => {
     DOCUMENT_SELECTOR.push(
         {
@@ -73,8 +75,8 @@ enum OutputFormat {
     Xml = "xml"
 }
 
-const minimumCFLintVersion: string = "1.4.0";
-let versionPrompted: boolean = false;
+const minimumCFLintVersion = "1.5.0";
+let versionPrompted = false;
 
 /**
  * Checks whether the language id is compatible with CFML.
@@ -94,7 +96,7 @@ async function enable(): Promise<void> {
         window.showErrorMessage("CFLint can only be enabled if VS Code is opened on a workspace folder.");
         return;
     }
-    let cflintSettings: WorkspaceConfiguration = getCFLintSettings(window.activeTextEditor.document.uri);
+    const cflintSettings: WorkspaceConfiguration = getCFLintSettings(window.activeTextEditor.document.uri);
     cflintSettings.update("enabled", true, ConfigurationTarget.Workspace);
     updateStatusBarItem(window.activeTextEditor);
 }
@@ -107,7 +109,7 @@ async function disable(): Promise<void> {
         window.showErrorMessage("CFLint can only be disabled if VS Code is opened on a workspace folder.");
         return;
     }
-    let cflintSettings: WorkspaceConfiguration = getCFLintSettings(window.activeTextEditor.document.uri);
+    const cflintSettings: WorkspaceConfiguration = getCFLintSettings(window.activeTextEditor.document.uri);
     cflintSettings.update("enabled", false, ConfigurationTarget.Workspace);
     updateStatusBarItem(window.activeTextEditor);
 }
@@ -125,12 +127,12 @@ function isLinterEnabled(resource: Uri): boolean {
 /**
  * Checks whether the given document matches the set of excluded globs.
  *
- * @param document The document to check against
+ * @param documentUri The URI of the document to check against
  */
-function shouldExcludeDocument(document: TextDocument): boolean {
-    const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
+function shouldExcludeDocument(documentUri: Uri): boolean {
+    const cflintSettings: WorkspaceConfiguration = getCFLintSettings(documentUri);
     const excludeGlobs = cflintSettings.get<string[]>("exclude", []);
-    const relativePath = workspace.asRelativePath(document.uri);
+    const relativePath = workspace.asRelativePath(documentUri);
 
     return micromatch.some(relativePath, excludeGlobs);
 }
@@ -143,7 +145,7 @@ function shouldExcludeDocument(document: TextDocument): boolean {
 function shouldLintDocument(document: TextDocument): boolean {
     return isLinterEnabled(document.uri)
         && isCfmlLanguage(document.languageId)
-        && !shouldExcludeDocument(document)
+        && !shouldExcludeDocument(document.uri)
         && document.uri.scheme !== "git";
 }
 
@@ -194,15 +196,23 @@ function correctJavaBinName(binName: string): string {
  * @param resource The URI of the resource for which to check the path
  * @return The full path to the java executable.
  */
-function findJavaExecutable(resource: Uri): string {
+async function findJavaExecutable(resource: Uri): Promise<string> {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
-    const javaPath: string = cflintSettings.get<string>("javaPath");
+    const javaPathSetting: string = cflintSettings.get<string>("javaPath");
     const javaBinName: string = correctJavaBinName("java");
 
     // Start with setting
-    if (javaPath) {
-        if (fs.existsSync(javaPath) && fs.statSync(javaPath).isFile() && path.basename(javaPath) === javaBinName) {
-            return javaPath;
+    if (javaPathSetting) {
+        if (fs.existsSync(javaPathSetting)) {
+            const checkStats = fs.statSync(javaPathSetting);
+            if (checkStats.isFile() && path.basename(javaPathSetting) === javaBinName) {
+                return javaPathSetting;
+            } else if (checkStats.isDirectory()) {
+                const javaPath: string = path.join(javaPathSetting, javaBinName);
+                if (fs.existsSync(javaPath)) {
+                    return javaPath;
+                }
+            }
         }
 
         window.showWarningMessage("Ignoring invalid cflint.javaPath setting. Please correct this.");
@@ -225,7 +235,7 @@ function findJavaExecutable(resource: Uri): string {
     if (envPath) {
         const pathParts: string[] = envPath.split(path.delimiter);
         for (const pathPart of pathParts) {
-            let javaPath: string = path.join(pathPart, javaBinName);
+            const javaPath: string = path.join(pathPart, javaBinName);
             if (fs.existsSync(javaPath)) {
                 return javaPath;
             }
@@ -238,48 +248,78 @@ function findJavaExecutable(resource: Uri): string {
 /**
  * Checks to see if cflint.jarPath resolves to a valid file path.
  *
+ * @param resource The resource for which to check the settings
  * @return Whether the JAR path in settings is a valid path.
  */
-function jarPathExists(resource: Uri): boolean {
+async function jarPathExists(resource: Uri): Promise<boolean> {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
     const jarPath: string = cflintSettings.get<string>("jarPath", "");
-    return validateFilePath(jarPath) === "";
+
+    if (!jarPath) {
+        return false;
+    }
+
+    try {
+        const jarUri = Uri.file(jarPath);
+        return await validateFileUri(jarUri) === "";
+    } catch (err) {
+        return false;
+    }
 }
 
 /**
  * Checks to see if cflint.outputDirectory resolves to a valid directory path.
  *
+ * @param resource The resource for which to check the settings
  * @return Whether the output directory path in settings is a valid path.
  */
-function outputPathExists(resource: Uri): boolean {
+async function outputPathExists(resource: Uri): Promise<boolean> {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
     const outputDirectory: string = cflintSettings.get<string>("outputDirectory", "");
-    return validateDirectoryPath(outputDirectory) === "";
+
+    if (!outputDirectory) {
+        return false;
+    }
+
+    try {
+        const outputUri = Uri.file(outputDirectory);
+        return await validateDirectoryUri(outputUri) === "";
+    } catch (err) {
+        return false;
+    }
 }
 
 /**
- * Checks if the input string resolves to a valid file path.
+ * Checks if the given file URI is valid and exists
  *
- * @param input The path to check validity.
+ * @param fileUri The URI to check validity.
  * @return Empty string if valid, else an error message.
  */
-function validateFilePath(input: string): string {
-    if (fs.existsSync(input) && fs.statSync(input).isFile()) {
-        return "";
+async function validateFileUri(fileUri: Uri): Promise<string> {
+    try {
+        if ((await workspace.fs.stat(fileUri)).type === FileType.File) {
+            return "";
+        }
+    } catch (err) {
+        // Do nothing
     }
 
     return "This is not a valid file path";
 }
 
 /**
- * Checks if the input string resolves to a valid directory path.
+ * Checks if the given directory file URI is valid and exists
  *
- * @param input The path to check validity.
+ * @param directoryUri The URI to check validity.
  * @return Empty string if valid, else an error message.
  */
-function validateDirectoryPath(input: string): string {
-    if (fs.existsSync(input) && fs.statSync(input).isDirectory()) {
-        return "";
+async function validateDirectoryUri(directoryUri: Uri): Promise<string> {
+    try {
+        if ((await workspace.fs.stat(directoryUri)).type === FileType.Directory) {
+            return "";
+        }
+    } catch (err) {
+        // Do nothing
     }
 
     return "This is not a valid directory path";
@@ -293,7 +333,7 @@ function showInvalidJarPathMessage(resource: Uri): void {
     window.showErrorMessage("You must set cflint.jarPath to a valid path in your settings", "Set now").then(
         (selection: string) => {
             if (selection === "Set now") {
-                let cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
+                const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
                 const cflintJarPathValues = cflintSettings.inspect<string>("jarPath");
                 let configTarget: ConfigurationTarget;
                 if (cflintJarPathValues.workspaceFolderValue) {
@@ -305,7 +345,7 @@ function showInvalidJarPathMessage(resource: Uri): void {
                 }
                 const jarPath: string = cflintSettings.get<string>("jarPath", "");
 
-                let openDialogOptions: OpenDialogOptions = {
+                const openDialogOptions: OpenDialogOptions = {
                     canSelectFiles: true,
                     canSelectFolders: false,
                     canSelectMany: false,
@@ -325,7 +365,7 @@ function showInvalidJarPathMessage(resource: Uri): void {
                 }
 
                 window.showOpenDialog(openDialogOptions).then((uris: Uri[] | undefined) => {
-                    if (uris && uris.length === 1) {
+                    if (uris?.length === 1) {
                         cflintSettings.update("jarPath", uris[0].fsPath, configTarget);
                     }
                 });
@@ -342,7 +382,7 @@ function showInvalidOutputDirectoryMessage(resource: Uri): void {
     window.showErrorMessage("You must set cflint.outputDirectory to a valid existing directory in your settings", "Set now").then(
         (selection: string) => {
             if (selection === "Set now") {
-                let cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
+                const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
 
                 const cflintOutputDirValues = cflintSettings.inspect<string>("outputDirectory");
                 let configTarget: ConfigurationTarget;
@@ -355,7 +395,7 @@ function showInvalidOutputDirectoryMessage(resource: Uri): void {
                 }
                 const outputDirectory: string = cflintSettings.get<string>("outputDirectory", "");
 
-                let openDialogOptions: OpenDialogOptions = {
+                const openDialogOptions: OpenDialogOptions = {
                     canSelectFiles: false,
                     canSelectFolders: true,
                     canSelectMany: false,
@@ -374,7 +414,7 @@ function showInvalidOutputDirectoryMessage(resource: Uri): void {
                 }
 
                 window.showOpenDialog(openDialogOptions).then((uris: Uri[] | undefined) => {
-                    if (uris && uris.length === 1) {
+                    if (uris?.length === 1) {
                         cflintSettings.update("outputDirectory", uris[0].fsPath, configTarget);
                     }
                 });
@@ -388,8 +428,8 @@ function showInvalidOutputDirectoryMessage(resource: Uri): void {
  *
  * @param document The document being linted.
  */
-function lintDocument(document: TextDocument): void {
-    if (!jarPathExists(document.uri)) {
+async function lintDocument(document: TextDocument): Promise<void> {
+    if (!await jarPathExists(document.uri)) {
         showInvalidJarPathMessage(document.uri);
         return;
     }
@@ -415,13 +455,14 @@ function lintDocument(document: TextDocument): void {
  *
  * @param document The document being linted.
  */
-function onLintDocument(document: TextDocument): void {
+async function onLintDocument(document: TextDocument): Promise<void> {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
 
-    const javaExecutable: string = findJavaExecutable(document.uri);
+    const javaExecutable: string = await findJavaExecutable(document.uri);
 
+    // TODO: Check for workspace. Try workspace.workspaceFolders[0].uri.fsPath
     const options = workspace.rootPath ? { cwd: workspace.rootPath } : undefined;
-    let javaArgs: string[] = [
+    const javaArgs: string[] = [
         "-jar",
         cflintSettings.get<string>("jarPath", ""),
         "-stdin",
@@ -440,11 +481,11 @@ function onLintDocument(document: TextDocument): void {
         }
     }
 
-    let output: string = "";
+    let output = "";
 
     try {
-        let childProcess: ChildProcess = spawn(javaExecutable, javaArgs, options);
-        console.log(`[${getCurrentDateTimeFormatted()}] ${javaExecutable} ${javaArgs.join(" ")}`);
+        const childProcess: ChildProcess = spawn(javaExecutable, javaArgs, options);
+        outputChannel.appendLine(`[${getCurrentDateTimeFormatted()}] ${javaExecutable} ${javaArgs.join(" ")}`);
 
         if (childProcess.pid) {
             runningLints.set(document.uri, childProcess);
@@ -455,14 +496,14 @@ function onLintDocument(document: TextDocument): void {
             childProcess.stdout.on("data", (data: Buffer) => {
                 output += data;
             });
-            childProcess.stdout.on("end", () => {
-                if (output && output.length > 0) {
+            childProcess.stdout.on("end", async () => {
+                if (output?.length > 0) {
                     cfLintResult(document, output);
                 }
                 runningLints.delete(document.uri);
                 if (queuedLints.size > 0) {
                     const nextKey: Uri = queuedLints.keys().next().value;
-                    onLintDocument(queuedLints.get(nextKey));
+                    await onLintDocument(queuedLints.get(nextKey));
                     queuedLints.delete(nextKey);
                 }
                 if (runningLints.size === 0) {
@@ -487,13 +528,13 @@ function onLintDocument(document: TextDocument): void {
  * @param document The document being linted.
  * @param format The format of the output.
  */
-function outputLintDocument(document: TextDocument, format: OutputFormat = OutputFormat.Html): void {
-    if (!jarPathExists(document.uri)) {
+async function outputLintDocument(document: TextDocument, format: OutputFormat = OutputFormat.Html): Promise<void> {
+    if (!await jarPathExists(document.uri)) {
         showInvalidJarPathMessage(document.uri);
         return;
     }
 
-    if (!outputPathExists(document.uri)) {
+    if (!await outputPathExists(document.uri)) {
         showInvalidOutputDirectoryMessage(document.uri);
         return;
     }
@@ -501,7 +542,7 @@ function outputLintDocument(document: TextDocument, format: OutputFormat = Outpu
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
 
     const outputDirectory: string = cflintSettings.get<string>("outputDirectory", "");
-    let outputFileName: string = `cflint-results-${path.parse(document.fileName).name}-${Date.now()}`;
+    let outputFileName = `cflint-results-${path.parse(document.fileName).name}-${Date.now()}`;
 
     let fileCommand: string;
     switch (format) {
@@ -529,9 +570,9 @@ function outputLintDocument(document: TextDocument, format: OutputFormat = Outpu
 
     const fullOutputPath: string = path.join(outputDirectory, outputFileName);
 
-    const javaExecutable: string = findJavaExecutable(document.uri);
+    const javaExecutable: string = await findJavaExecutable(document.uri);
 
-    let javaArgs: string[] = [
+    const javaArgs: string[] = [
         "-jar",
         cflintSettings.get<string>("jarPath", ""),
         "-stdin",
@@ -551,8 +592,8 @@ function outputLintDocument(document: TextDocument, format: OutputFormat = Outpu
         }
     }
 
-    let childProcess: ChildProcess = spawn(javaExecutable, javaArgs);
-    console.log(`[${getCurrentDateTimeFormatted()}] ${javaExecutable} ${javaArgs.join(" ")}`);
+    const childProcess: ChildProcess = spawn(javaExecutable, javaArgs);
+    outputChannel.appendLine(`[${getCurrentDateTimeFormatted()}] ${javaExecutable} ${javaArgs.join(" ")}`);
 
     if (childProcess.pid) {
         childProcess.stdin.write(document.getText(), "utf-8");
@@ -564,6 +605,14 @@ function outputLintDocument(document: TextDocument, format: OutputFormat = Outpu
             if (runningLints.size === 0) {
                 updateState(State.Stopped);
             }
+
+            window.showInformationMessage(`Successfully output ${format} file for ${path.basename(document.fileName)}`, "Open").then(
+                async (selection: string) => {
+                    if (selection === "Open") {
+                        workspace.openTextDocument(Uri.file(fullOutputPath)).then((outputDocument) => window.showTextDocument(outputDocument));
+                    }
+                }
+            );
         });
     }
 
@@ -594,16 +643,16 @@ async function notifyForMinimumVersion(): Promise<void> {
  * @param currentVersion The current version of CFLint being used
  */
 async function checkForLatestRelease(currentVersion: string): Promise<void> {
-    let cflintSettings: WorkspaceConfiguration = getCFLintSettings();
-    let notifyLatestVersion = cflintSettings.get("notify.latestVersion", true);
+    const cflintSettings: WorkspaceConfiguration = getCFLintSettings();
+    const notifyLatestVersion = cflintSettings.get("notify.latestVersion", true);
 
     if (!notifyLatestVersion) {
         return;
     }
 
-    const latestReleaseResult: Octokit.Response<Octokit.ReposGetLatestReleaseResponse> = await octokit.repos.getLatestRelease({ owner: gitRepoInfo.owner, repo: gitRepoInfo.repo });
+    const latestReleaseResult = await octokit.repos.getLatestRelease({ owner: gitRepoInfo.owner, repo: gitRepoInfo.repo });
 
-    if (latestReleaseResult && latestReleaseResult.hasOwnProperty("status") && latestReleaseResult.status === httpSuccessStatusCode && semver.lt(currentVersion, latestReleaseResult.data.tag_name.replace(/[^\d]*/, ""))) {
+    if (latestReleaseResult?.status === httpSuccessStatusCode && semver.lt(currentVersion, latestReleaseResult.data.tag_name.replace(/[^\d]*/, ""))) {
         notifyForLatestRelease(latestReleaseResult.data.tag_name);
     }
 }
@@ -657,31 +706,30 @@ function cfLintResult(document: TextDocument, output: string): void {
  * @param _ruleId An optional identifer/code for a particular CFLint rule.
  */
 async function showRuleDocumentation(_ruleId?: string): Promise<void> {
-    const cflintRulesFileName: string = "RULES.md";
-    const cflintRulesFilePath: string = path.join(extensionPath, "resources", cflintRulesFileName);
+    const cflintRulesFileName = "RULES.md";
+    const cflintRulesUri = Uri.joinPath(extensionContext.extensionUri, "resources", cflintRulesFileName);
     const millisecondsInHour = 3600000;
 
     if (!rulesLastRetrieved || (Date.now() - rulesLastRetrieved.getTime()) < millisecondsInHour) {
         try {
-            const cflintRulesResult = await octokit.repos.getContents({
+            const cflintRulesResult = await octokit.repos.getContent({
                 owner: gitRepoInfo.owner,
                 repo: gitRepoInfo.repo,
                 path: cflintRulesFileName
             });
 
-            if (cflintRulesResult && cflintRulesResult.hasOwnProperty("status") && cflintRulesResult.status === httpSuccessStatusCode && cflintRulesResult.data.type === "file") {
-                const resultText: string = Buffer.from(cflintRulesResult.data.content, cflintRulesResult.data.encoding).toString("utf8");
+            if (cflintRulesResult?.status === httpSuccessStatusCode && !Array.isArray(cflintRulesResult.data) && cflintRulesResult.data.type === "file") {
+                const result = Buffer.from(cflintRulesResult.data.content, cflintRulesResult.data.encoding as BufferEncoding);
 
-                fs.writeFileSync(cflintRulesFilePath, resultText);
+                await workspace.fs.writeFile(cflintRulesUri, result);
 
                 rulesLastRetrieved = new Date();
             }
         } catch (err) {
+            // window.showErrorMessage(`There was a problem showing the rule documentation. ${err.message}`);
             console.error(err);
         }
     }
-
-    const cflintRulesUri: Uri = Uri.file(cflintRulesFilePath);
 
     commands.executeCommand("markdown.showPreview", cflintRulesUri);
 }
@@ -690,7 +738,7 @@ async function showRuleDocumentation(_ruleId?: string): Promise<void> {
  * Opens a link that lists the CFLint releases.
  */
 async function showCFLintReleases(): Promise<void> {
-    const cflintReleasesURL: string = "https://github.com/cflint/CFLint/releases";
+    const cflintReleasesURL = "https://github.com/cflint/CFLint/releases";
     const cflintReleasesUri: Uri = Uri.parse(cflintReleasesURL);
     env.openExternal(cflintReleasesUri);
 }
@@ -742,8 +790,8 @@ function updateStatusBarItem(editor: TextEditor): void {
  * Initializes settings helpful to this extension.
  */
 function initializeSettings(): void {
-    let fileSettings: WorkspaceConfiguration = workspace.getConfiguration("files", null);
-    let fileAssociations = fileSettings.get("associations", {});
+    const fileSettings: WorkspaceConfiguration = workspace.getConfiguration("files", null);
+    const fileAssociations = fileSettings.get("associations", {});
     fileAssociations[CONFIG_FILENAME] = "json";
     fileSettings.update("associations", fileAssociations, ConfigurationTarget.Global);
 }
@@ -756,15 +804,13 @@ function initializeSettings(): void {
 export async function activate(context: ExtensionContext): Promise<void> {
     console.log(`[${getCurrentDateTimeFormatted()}] cflint is active!`);
 
-    const thisExtension = extensions.getExtension("KamasamaK.vscode-cflint");
-    minimumTypingDelay = thisExtension.packageJSON.contributes.configuration.properties["cflint.typingDelay"].minimum;
-    minimumCooldown = thisExtension.packageJSON.contributes.configuration.properties["cflint.linterCooldown"].minimum;
+    minimumTypingDelay = context.extension.packageJSON.contributes.configuration.properties["cflint.typingDelay"].minimum;
+    minimumCooldown = context.extension.packageJSON.contributes.configuration.properties["cflint.linterCooldown"].minimum;
 
     initializeSettings();
 
-    extensionPath = context.extensionPath;
-    logPath = context.logPath;
-
+    extensionContext = context;
+    outputChannel = window.createOutputChannel("CFLint");
     diagnosticCollection = languages.createDiagnosticCollection("cflint");
 
     typingDelayer = new Map<Uri, ThrottledDelayer<void>>();
@@ -778,46 +824,42 @@ export async function activate(context: ExtensionContext): Promise<void> {
     context.subscriptions.push(
         diagnosticCollection,
         statusBarItem,
+        outputChannel,
         commands.registerCommand("cflint.enable", enable),
         commands.registerCommand("cflint.disable", disable),
         commands.registerCommand("cflint.viewRulesDoc", showRuleDocumentation),
         commands.registerCommand("cflint.createRootConfig", createRootConfig),
         commands.registerCommand("cflint.createCwdConfig", createCwdConfig),
         commands.registerCommand("cflint.openRootConfig", showRootConfig),
-        commands.registerCommand("cflint.openActiveConfig", showActiveConfig)
+        commands.registerTextEditorCommand("cflint.openActiveConfig", showActiveConfig)
     );
 
-    context.subscriptions.push(commands.registerCommand("cflint.runLinter", () => {
-        if (window.activeTextEditor === undefined) {
-            window.showErrorMessage("No active text editor to lint");
+    context.subscriptions.push(commands.registerTextEditorCommand("cflint.runLinter", (editor: TextEditor) => {
+        if (!shouldLintDocument(editor.document)) {
             return;
         }
 
-        if (!shouldLintDocument(window.activeTextEditor.document)) {
-            return;
-        }
-
-        lintDocument(window.activeTextEditor.document);
+        lintDocument(editor.document);
     }));
 
-    context.subscriptions.push(commands.registerCommand("cflint.outputTextFile", async () => {
-        outputLintDocument(window.activeTextEditor.document, OutputFormat.Text);
+    context.subscriptions.push(commands.registerTextEditorCommand("cflint.outputTextFile", async (editor: TextEditor) => {
+        outputLintDocument(editor.document, OutputFormat.Text);
     }));
 
-    context.subscriptions.push(commands.registerCommand("cflint.outputHtmlFile", async () => {
-        outputLintDocument(window.activeTextEditor.document, OutputFormat.Html);
+    context.subscriptions.push(commands.registerTextEditorCommand("cflint.outputHtmlFile", async (editor: TextEditor) => {
+        outputLintDocument(editor.document, OutputFormat.Html);
     }));
 
-    context.subscriptions.push(commands.registerCommand("cflint.outputJsonFile", async () => {
-        outputLintDocument(window.activeTextEditor.document, OutputFormat.Json);
+    context.subscriptions.push(commands.registerTextEditorCommand("cflint.outputJsonFile", async (editor: TextEditor) => {
+        outputLintDocument(editor.document, OutputFormat.Json);
     }));
 
-    context.subscriptions.push(commands.registerCommand("cflint.outputXmlFile", async () => {
-        outputLintDocument(window.activeTextEditor.document, OutputFormat.Xml);
+    context.subscriptions.push(commands.registerTextEditorCommand("cflint.outputXmlFile", async (editor: TextEditor) => {
+        outputLintDocument(editor.document, OutputFormat.Xml);
     }));
 
     const cfmlExt = extensions.getExtension("KamasamaK.vscode-cfml");
-    if (!cfmlExt.isActive) {
+    if (cfmlExt && !cfmlExt.isActive) {
         await cfmlExt.activate();
     }
 
@@ -829,18 +871,18 @@ export async function activate(context: ExtensionContext): Promise<void> {
 
     // TODO: Add command for running linter for all opened CFML files. Needs refactoring. Needs API for opened editors.
 
-    context.subscriptions.push(workspace.onDidOpenTextDocument((document: TextDocument) => {
-        let cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
-        let runModes: RunModes = cflintSettings.get("runModes");
+    context.subscriptions.push(workspace.onDidOpenTextDocument(async (document: TextDocument) => {
+        const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
+        const runModes: RunModes = cflintSettings.get("runModes");
         if (!shouldLintDocument(document) || !runModes.onOpen) {
             return;
         }
 
-        if (!document.uri.path || (path.basename(document.uri.path) === document.uri.path && !fs.existsSync(document.uri.path))) {
+        if (!document.uri.path || (path.basename(document.uri.path) === document.uri.path && !await fileExists(document.uri))) {
             return;
         }
 
-        if (cfmlApi && cfmlApi.isBulkCaching()) {
+        if (cfmlApi?.isBulkCaching()) {
             return;
         }
 
@@ -850,8 +892,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
     }));
 
     context.subscriptions.push(workspace.onDidSaveTextDocument((document: TextDocument) => {
-        let cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
-        let runModes: RunModes = cflintSettings.get("runModes");
+        const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
+        const runModes: RunModes = cflintSettings.get("runModes");
 
         if (!shouldLintDocument(document) || !runModes.onSave) {
             return;
@@ -861,8 +903,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
     }));
 
     context.subscriptions.push(workspace.onDidChangeTextDocument((evt: TextDocumentChangeEvent) => {
-        let cflintSettings: WorkspaceConfiguration = getCFLintSettings(evt.document.uri);
-        let runModes: RunModes = cflintSettings.get("runModes");
+        const cflintSettings: WorkspaceConfiguration = getCFLintSettings(evt.document.uri);
+        const runModes: RunModes = cflintSettings.get("runModes");
         if (!shouldLintDocument(evt.document) || !runModes.onChange) {
             return;
         }
@@ -881,7 +923,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         }
 
         delayer.trigger(async () => {
-            lintDocument(evt.document);
+            await lintDocument(evt.document);
             typingDelayer.delete(evt.document.uri);
         });
     }));
@@ -910,8 +952,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
         }
     }));
 
-    context.subscriptions.push(commands.registerCommand("cflint.clearActiveDocumentProblems", () => {
-        diagnosticCollection.delete(window.activeTextEditor.document.uri);
+    context.subscriptions.push(commands.registerTextEditorCommand("cflint.clearActiveDocumentProblems", (editor: TextEditor) => {
+        diagnosticCollection.delete(editor.document.uri);
     }));
 
     context.subscriptions.push(commands.registerCommand("cflint.clearAllProblems", () => {

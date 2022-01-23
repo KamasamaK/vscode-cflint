@@ -1,5 +1,9 @@
 # VS Code CFLint
 
+[![VS Marketplace](https://vsmarketplacebadge.apphb.com/version-short/KamasamaK.vscode-cflint.svg)](https://marketplace.visualstudio.com/items?itemName=KamasamaK.vscode-cflint)
+[![Open VSX](https://img.shields.io/open-vsx/v/KamasamaK/vscode-cflint)](https://open-vsx.org/extension/KamasamaK/vscode-cflint)
+[![cfml](https://img.shields.io/badge/cfml-ide-blue.svg?logo=slack&labelColor=555555)](https://cfml-slack.herokuapp.com)
+
 **CFLint** is a linter for CFML and you can find more information at its [GitHub repository](https://github.com/cflint/CFLint). This extension integrates **CFLint** into VS Code.
 
 ## Features
@@ -35,7 +39,7 @@ See [Commands](#commands) below.
 You must first install **CFLint**. You may skip the steps below if you already have them.
 
 1. Download and install latest **Java SE 8**+ [JRE](https://www.java.com/en/download/manual.jsp), or [JDK](https://adoptopenjdk.net/) if you plan to build it yourself.
-1. Download latest **CFLint** (v1.4.0+) standalone/all JAR from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Ccflint) or [the GitHub releases](https://github.com/cflint/CFLint/releases). Alternatively, build it yourself using [these instructions](https://github.com/cflint/CFLint#building-cflint). This is the JAR file that will be provided to `cflint.jarPath` in the settings.
+1. Download latest **CFLint** (v1.5.0+) standalone/all JAR from [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Ccflint) or [the GitHub releases](https://github.com/cflint/CFLint/releases). Alternatively, build it yourself using [these instructions](https://github.com/cflint/CFLint#building-cflint) to get the bleeding-edge. This is the JAR file that will be provided to `cflint.jarPath` in the settings.
 
 ### Extension dependencies
 
@@ -104,11 +108,10 @@ _Note_: The output commands above have CFLint produce the reports directly, so s
 ## Known Issues/Limitations
 
 1. Not an issue with the extension itself, but be aware that **CFLint** is a heavy/slow application compared to most linters, especially when used through the command line. Some things are done with the extension to account for this.
-1. As of this writing, **CFLint** (v1.4.1) often misreports issue location.
+1. As of this writing, **CFLint** (v1.5.0) often misreports issue location.
 
 ## Future Plans
 
-- Investigate using [CFLint NPM wrapper](https://www.npmjs.com/package/cflint) as a default with optional manual installation. Currently not using an up-to-date version.
 - Investigate useful menu items.
 - Investigate where extension performance may be able to be improved (e.g. with Promises, Cancellation Tokens, or Language Server).
 
@@ -119,3 +122,7 @@ See [CHANGELOG.md](/CHANGELOG.md)
 ## Contributing
 
 See [CONTRIBUTING.md](/CONTRIBUTING.md)
+
+## Support
+
+For questions or help, join the `#ide` channel in the [CFML Slack workspace](https://cfml-slack.herokuapp.com/) to talk with people about this or other editor tools. To file a bug or feature request, open a [GitHub issue](https://github.com/KamasamaK/vscode-cflint/issues).

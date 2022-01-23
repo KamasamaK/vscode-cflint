@@ -1,10 +1,11 @@
-import * as findup from "findup-sync";
+import findup from "findup-sync";
 import * as fs from "fs";
 import * as path from "path";
-import { Position, Range, TextDocument, Uri, window, workspace, WorkspaceConfiguration, WorkspaceEdit } from "vscode";
+import { Position, Range, TextDocument, Uri, window, workspace, WorkspaceConfiguration, WorkspaceEdit, TextEditor } from "vscode";
 import { getCFLintSettings } from "./extension";
+import { fileExists, writeTextFile } from "./utils/fileUtils";
 
-export const CONFIG_FILENAME: string = ".cflintrc";
+export const CONFIG_FILENAME = ".cflintrc";
 
 const configFileDefault: string = JSON.stringify(
     {
@@ -54,18 +55,19 @@ export interface Config {
  * @param directory The directory in which to create the config file.
  * @return Indication of whether the file creation was successful.
  */
-async function createDefaultConfiguration(directory: string): Promise<boolean> {
+async function createDefaultConfiguration(directory: Uri): Promise<boolean> {
     if (!directory) {
         window.showErrorMessage("A CFLint configuration can only be generated if VS Code is opened on a workspace folder.");
         return false;
     }
-    let cflintConfigFile: string = path.join(directory, CONFIG_FILENAME);
-    if (!fs.existsSync(cflintConfigFile)) {
-        fs.writeFileSync(cflintConfigFile, configFileDefault, { encoding: "utf8" });
+
+    const cflintConfigFileUri = Uri.joinPath(directory, CONFIG_FILENAME);
+    if (!await fileExists(cflintConfigFileUri)) {
+        await writeTextFile(cflintConfigFileUri, configFileDefault);
         window.showInformationMessage("Successfully created configuration file", "Open file").then(
             async (selection: string) => {
                 if (selection === "Open file") {
-                    const textDocument: TextDocument = await workspace.openTextDocument(cflintConfigFile);
+                    const textDocument: TextDocument = await workspace.openTextDocument(cflintConfigFileUri);
                     window.showTextDocument(textDocument);
                 }
             }
@@ -76,7 +78,7 @@ async function createDefaultConfiguration(directory: string): Promise<boolean> {
         window.showErrorMessage("Configuration file already exists", "Open file").then(
             async (selection: string) => {
                 if (selection === "Open file") {
-                    const textDocument: TextDocument = await workspace.openTextDocument(cflintConfigFile);
+                    const textDocument: TextDocument = await workspace.openTextDocument(cflintConfigFileUri);
                     window.showTextDocument(textDocument);
                 }
             }
@@ -84,6 +86,24 @@ async function createDefaultConfiguration(directory: string): Promise<boolean> {
     }
 
     return false;
+}
+
+/**
+ * Checks to see if an alternate config file exists.
+ *
+ * @param resource The resource for which to check the settings
+ * @return Whether cflint.altConfigFile resolves to a valid path.
+ */
+function alternateConfigFileExists(resource: Uri): boolean {
+    const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
+    const altConfigFilePath: string = cflintSettings.get<string>("altConfigFile.path", "");
+
+    /* TODO: Replace with fileExists when converted to async
+    const altConfigFileUri = Uri.file(altConfigFilePath);
+    return fileExists(altConfigFileUri);
+    */
+
+    return fs.existsSync(altConfigFilePath);
 }
 
 /**
@@ -117,17 +137,6 @@ export function getConfigFilePath(document: TextDocument, fileName: string = CON
 }
 
 /**
- * Checks to see if an alternate config file exists.
- *
- * @return Whether cflint.altConfigFile resolves to a valid path.
- */
-function alternateConfigFileExists(resource: Uri): boolean {
-    const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
-    const altConfigFile: string = cflintSettings.get<string>("altConfigFile.path", "");
-    return fs.existsSync(altConfigFile);
-}
-
-/**
  * Returns a configuration object for the given configuration document
  *
  * @param configDocument The document for the config file to parse
@@ -144,6 +153,20 @@ export function parseConfig(configDocument: TextDocument): Config {
 }
 
 /**
+ * Gets the active config document based on the given document
+ *
+ * @param document The document from which to determine the active config
+ */
+export async function getActiveConfig(document: TextDocument = window.activeTextEditor.document): Promise<TextDocument | undefined> {
+    const currentConfigPath = getConfigFilePath(document);
+    if (currentConfigPath) {
+        return workspace.openTextDocument(currentConfigPath);
+    } else {
+        return undefined;
+    }
+}
+
+/**
  * Adds the given rule code as an exclusion to the given document
  *
  * @param document The document for the config file to modify
@@ -157,7 +180,7 @@ export async function addConfigRuleExclusion(document: TextDocument, ruleCode: s
     }
 
     const documentText: string = configDocument.getText();
-    let parsedConfig: Config = parseConfig(configDocument);
+    const parsedConfig: Config = parseConfig(configDocument);
 
     if (!parsedConfig) {
         return false;
@@ -168,16 +191,16 @@ export async function addConfigRuleExclusion(document: TextDocument, ruleCode: s
     }
 
     const foundExclusion: boolean = parsedConfig.excludes.some((rule) => {
-        return (rule.hasOwnProperty("code") && rule.code === ruleCode);
+        return (rule?.code === ruleCode);
     });
     if (foundExclusion) {
         return false;
     }
 
-    let includeIndex: number = -1;
+    let includeIndex = -1;
     if (parsedConfig.hasOwnProperty("includes")) {
         includeIndex = parsedConfig.includes.findIndex((rule) => {
-            return (rule.hasOwnProperty("code") && rule.code === ruleCode);
+            return (rule?.code === ruleCode);
         });
     }
 
@@ -191,7 +214,7 @@ export async function addConfigRuleExclusion(document: TextDocument, ruleCode: s
         );
     }
 
-    let edit: WorkspaceEdit = new WorkspaceEdit();
+    const edit: WorkspaceEdit = new WorkspaceEdit();
     const documentStart = new Position(0, 0);
     const documentRange = new Range(documentStart, configDocument.positionAt(documentText.length));
     edit.replace(configDocument.uri, documentRange, JSON.stringify(parsedConfig, null, "\t"));
@@ -206,29 +229,31 @@ export async function addConfigRuleExclusion(document: TextDocument, ruleCode: s
 
 /**
  * Creates a config file in the workspace root
+ * @editor The text editor which represents the document for which to create a root config
  */
-export async function createRootConfig(): Promise<boolean> {
-    const workspaceFolder = workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
-    return createDefaultConfiguration(workspaceFolder.uri.fsPath);
+export async function createRootConfig(editor: TextEditor = window.activeTextEditor): Promise<boolean> {
+    const workspaceFolder = workspace.getWorkspaceFolder(editor.document.uri);
+    return createDefaultConfiguration(workspaceFolder.uri);
 }
 
 /**
  * Opens the config file in the root
+ * @editor The text editor which represents the document for which to show the root config
  */
-export async function showRootConfig(): Promise<boolean> {
-    const workspaceFolder = workspace.getWorkspaceFolder(window.activeTextEditor.document.uri);
+export async function showRootConfig(editor: TextEditor = window.activeTextEditor): Promise<boolean> {
+    const workspaceFolder = workspace.getWorkspaceFolder(editor.document.uri);
 
-    const rootConfigPath = path.join(workspaceFolder.uri.fsPath, CONFIG_FILENAME);
+    const rootConfigUri = Uri.joinPath(workspaceFolder.uri, CONFIG_FILENAME);
 
-    if (fs.existsSync(rootConfigPath)) {
-        const configDocument: TextDocument = await workspace.openTextDocument(rootConfigPath);
+    if (await fileExists(rootConfigUri)) {
+        const configDocument: TextDocument = await workspace.openTextDocument(rootConfigUri);
         window.showTextDocument(configDocument);
         return true;
     } else {
         window.showErrorMessage("No config file could be found in the current workspace folder.", "Create Root Config").then(
             async (selection: string) => {
                 if (selection === "Create Root Config") {
-                    createRootConfig();
+                    createRootConfig(editor);
                 }
             }
         );
@@ -238,30 +263,17 @@ export async function showRootConfig(): Promise<boolean> {
 }
 
 /**
- * Gets the active config document based on the given document
- *
- * @param document The document from which to determine the active config
- */
-export async function getActiveConfig(document: TextDocument = window.activeTextEditor.document): Promise<TextDocument | undefined> {
-    let currentConfigPath = getConfigFilePath(document);
-    if (currentConfigPath) {
-        return workspace.openTextDocument(currentConfigPath);
-    } else {
-        return undefined;
-    }
-}
-
-/**
  * Shows the active config document
+ * @editor The text editor which represents the document for which to show the config in the current working directory
  */
-export async function showActiveConfig(): Promise<boolean> {
-    const configDocument: TextDocument = await getActiveConfig();
+export async function showActiveConfig(editor: TextEditor = window.activeTextEditor): Promise<boolean> {
+    const configDocument: TextDocument = await getActiveConfig(editor.document);
 
     if (!configDocument) {
         window.showErrorMessage("No config file is being used for the currently active document.", "Create Root Config").then(
             async (selection: string) => {
                 if (selection === "Create Root Config") {
-                    createRootConfig();
+                    createRootConfig(editor);
                 }
             }
         );
@@ -276,7 +288,9 @@ export async function showActiveConfig(): Promise<boolean> {
 
 /**
  * Creates a config file in the current working directory
+ * @editor The text editor which represents the document for which to create a config in the current working directory
  */
-export async function createCwdConfig(): Promise<boolean> {
-    return createDefaultConfiguration(path.dirname(window.activeTextEditor.document.fileName));
+export async function createCwdConfig(editor: TextEditor = window.activeTextEditor): Promise<boolean> {
+    const directory = Uri.file(path.dirname(editor.document.fileName));
+    return createDefaultConfiguration(directory);
 }
