@@ -2,7 +2,7 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
-## [0.3.5] - 2022-01-23
+## [0.3.5] - 2022-04-07
 
 - Utilize output channel
 - Allowed `cflint.javaPath` setting to be directory instead of just file path
