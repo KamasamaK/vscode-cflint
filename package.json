@@ -2,12 +2,12 @@
     "name": "vscode-cflint",
     "displayName": "CFLint",
     "description": "CFLint for Visual Studio Code",
-    "version": "0.3.5",
+    "version": "0.3.6",
     "author": "KamasamaK",
     "publisher": "KamasamaK",
     "license": "MIT",
     "engines": {
-        "vscode": "^1.66.1"
+        "vscode": "^1.66.2"
     },
     "repository": {
         "type": "git",
@@ -35,6 +35,16 @@
         "onCommand:cflint.runLinter"
     ],
     "main": "./out/src/extension",
+    "capabilities": {
+        "virtualWorkspaces": {
+            "supported": false,
+            "description": "Using CFLint is not possible in virtual workspaces."
+        },
+        "untrustedWorkspaces": {
+            "supported": false,
+            "description": "The extension requires workspace trust because it loads configuration files and code from the workspace and executes it."
+        }
+    },
     "contributes": {
         "configuration": {
             "id": "cflint",
@@ -308,10 +318,10 @@
         "vscode:prepublish": "npm run build"
     },
     "dependencies": {
-        "@octokit/rest": "~17.11.2",
+        "@octokit/rest": "~18.12.0",
         "findup-sync": "5.0.0",
         "micromatch": "4.0.5",
-        "semver": "~7.3.6",
+        "semver": "~7.3.7",
         "camelcase": "6.3.0",
         "uppercamelcase": "3.0.0"
     },
@@ -323,10 +333,10 @@
         "@types/mocha": "~9.1.0",
         "@types/node": "~16.11.26",
         "@types/vscode": "~1.66.0",
-        "@typescript-eslint/eslint-plugin": "^5.18.0",
-        "@typescript-eslint/parser": "^5.18.0",
-        "eslint": "^8.12.0",
-        "eslint-plugin-jsdoc": "^38.1.6",
+        "@typescript-eslint/eslint-plugin": "^5.19.0",
+        "@typescript-eslint/parser": "^5.19.0",
+        "eslint": "^8.13.0",
+        "eslint-plugin-jsdoc": "^39.2.1",
         "mocha": "~9.2.2",
         "rimraf": "^3.0.2",
         "typescript": "^4.6.3",

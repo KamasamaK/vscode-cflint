@@ -103,7 +103,7 @@ Used in Command Palette (`Ctrl`+`Shift`+`P`). Alternatively, can be bound to Key
 
 - Output CFLint XML file for currently active document
 
-_Note_: The output commands above have CFLint produce the reports directly, so some extension settings are not considered.
+*Note*: The output commands above have CFLint produce the reports directly, so some extension settings are not considered.
 
 ## Known Issues/Limitations
 

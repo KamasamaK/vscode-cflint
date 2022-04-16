@@ -1,5 +1,4 @@
 import findup from "findup-sync";
-import * as fs from "fs";
 import * as path from "path";
 import { Position, Range, TextDocument, Uri, window, workspace, WorkspaceConfiguration, WorkspaceEdit, TextEditor } from "vscode";
 import { getCFLintSettings } from "./extension";
@@ -94,16 +93,12 @@ async function createDefaultConfiguration(directory: Uri): Promise<boolean> {
  * @param resource The resource for which to check the settings
  * @return Whether cflint.altConfigFile resolves to a valid path.
  */
-function alternateConfigFileExists(resource: Uri): boolean {
+async function alternateConfigFileExists(resource: Uri): Promise<boolean> {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(resource);
     const altConfigFilePath: string = cflintSettings.get<string>("altConfigFile.path", "");
-
-    /* TODO: Replace with fileExists when converted to async
     const altConfigFileUri = Uri.file(altConfigFilePath);
-    return fileExists(altConfigFileUri);
-    */
 
-    return fs.existsSync(altConfigFilePath);
+    return fileExists(altConfigFileUri);
 }
 
 /**
@@ -113,11 +108,11 @@ function alternateConfigFileExists(resource: Uri): boolean {
  * @param fileName The filename that will be checked.
  * @return The full path to the config file, or undefined if none.
  */
-export function getConfigFilePath(document: TextDocument, fileName: string = CONFIG_FILENAME): string {
+export async function getConfigFilePath(document: TextDocument, fileName: string = CONFIG_FILENAME): Promise<string> {
     const cflintSettings: WorkspaceConfiguration = getCFLintSettings(document.uri);
     const altConfigFile: string = cflintSettings.get<string>("altConfigFile.path", "");
     const altConfigFileUsage: string = cflintSettings.get<string>("altConfigFile.usage", "fallback");
-    const altConfigFileExists: boolean = alternateConfigFileExists(document.uri);
+    const altConfigFileExists: boolean = await alternateConfigFileExists(document.uri);
 
     if (altConfigFileExists && altConfigFileUsage === "always") {
         return altConfigFile;
@@ -158,7 +153,7 @@ export function parseConfig(configDocument: TextDocument): Config {
  * @param document The document from which to determine the active config
  */
 export async function getActiveConfig(document: TextDocument = window.activeTextEditor.document): Promise<TextDocument | undefined> {
-    const currentConfigPath = getConfigFilePath(document);
+    const currentConfigPath = await getConfigFilePath(document);
     if (currentConfigPath) {
         return workspace.openTextDocument(currentConfigPath);
     } else {

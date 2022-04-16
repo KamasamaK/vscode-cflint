@@ -18,8 +18,7 @@ import { fileExists } from "./utils/fileUtils";
 const octokit = new Octokit();
 const gitRepoInfo = {
     owner: "cflint",
-    repo: "CFLint",
-    defaultBranch: "master"
+    repo: "CFLint"
 };
 const httpSuccessStatusCode = 200;
 
@@ -460,8 +459,7 @@ async function onLintDocument(document: TextDocument): Promise<void> {
 
     const javaExecutable: string = await findJavaExecutable(document.uri);
 
-    // TODO: Check for workspace. Try workspace.workspaceFolders[0].uri.fsPath
-    const options = workspace.rootPath ? { cwd: workspace.rootPath } : undefined;
+    const options = workspace.workspaceFolders?.[0] ? { cwd: workspace.workspaceFolders[0].uri.fsPath } : undefined;
     const javaArgs: string[] = [
         "-jar",
         cflintSettings.get<string>("jarPath", ""),
@@ -475,7 +473,7 @@ async function onLintDocument(document: TextDocument): Promise<void> {
 
     const altConfigFile: string = cflintSettings.get<string>("altConfigFile.path", "");
     if (altConfigFile) {
-        const configFile: string = getConfigFilePath(document);
+        const configFile: string = await getConfigFilePath(document);
         if (configFile) {
             javaArgs.push("-configfile", configFile);
         }
@@ -586,7 +584,7 @@ async function outputLintDocument(document: TextDocument, format: OutputFormat =
 
     const altConfigFile: string = cflintSettings.get<string>("altConfigFile.path", "");
     if (altConfigFile) {
-        const configFile: string = getConfigFilePath(document);
+        const configFile: string = await getConfigFilePath(document);
         if (configFile) {
             javaArgs.push("-configfile", configFile);
         }
@@ -719,7 +717,7 @@ async function showRuleDocumentation(_ruleId?: string): Promise<void> {
             });
 
             if (cflintRulesResult?.status === httpSuccessStatusCode && !Array.isArray(cflintRulesResult.data) && cflintRulesResult.data.type === "file") {
-                const result = Buffer.from(cflintRulesResult.data.content, cflintRulesResult.data.encoding as BufferEncoding);
+                const result = Buffer.from(cflintRulesResult.data["content"], cflintRulesResult.data["encoding"] as BufferEncoding);
 
                 await workspace.fs.writeFile(cflintRulesUri, result);
 

@@ -7,9 +7,9 @@ out/test/**
 test/**
 src/**
 **/*.map
-.gitignore
-.eslintignore
-.eslintrc.js
+**/.gitignore
+**/.eslintignore
+**/.eslintrc.js
 .markdownlint.json
 tsconfig.json
 webpack.config.js

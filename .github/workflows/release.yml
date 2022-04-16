@@ -30,8 +30,11 @@ jobs:
       tag: ${{ steps.setup-tag.outputs.tag }}
       version: ${{ steps.setup-tag.outputs.version }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
@@ -47,7 +50,8 @@ jobs:
         run: |
           npx vsce package --out ${{ steps.setup.outputs.packageName }}
 
-      - uses: actions/upload-artifact@v3
+      - name: Upload package
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.setup.outputs.packageName }}
           path: ./${{ steps.setup.outputs.packageName }}

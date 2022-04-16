@@ -1,5 +1,9 @@
 .history/
 .sonarlint/
 .vscode/cSpell.json
+.DS_Store
+Thumbs.db
 node_modules/
 out/
+dist/
+*.vsix

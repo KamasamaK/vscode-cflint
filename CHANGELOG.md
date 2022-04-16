@@ -2,6 +2,10 @@
 
 All notable changes to the VS Code CFLint extension will be documented in this file.
 
+## [0.3.6] - 2022-04-16
+
+- Add Workspace Trust support
+
 ## [0.3.5] - 2022-04-07
 
 - Utilize output channel
