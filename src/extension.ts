@@ -15,6 +15,8 @@ import { ThrottledDelayer } from "./utils/async";
 import { getCurrentDateTimeFormatted } from "./utils/dateUtil";
 import { fileExists } from "./utils/fileUtils";
 
+const vscodeVariables = require('vscode-variables');
+
 const octokit = new Octokit();
 const gitRepoInfo = {
     owner: "cflint",
@@ -256,12 +258,14 @@ async function jarPathExists(resource: Uri): Promise<boolean> {
 
     if (!jarPath) {
         return false;
-    }
+	}
 
     try {
-        const jarUri = Uri.file(jarPath);
+		const resolvedJarPath = vscodeVariables(jarPath);
+		const jarUri = Uri.file(resolvedJarPath);
         return await validateFileUri(jarUri) === "";
-    } catch (err) {
+	} catch (err) {
+		console.error("Unable to resolve JarPath", jarPath);
         return false;
     }
 }
