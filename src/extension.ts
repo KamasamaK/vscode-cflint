@@ -14,6 +14,7 @@ import { CFLintIssueList } from "./issues";
 import { ThrottledDelayer } from "./utils/async";
 import { getCurrentDateTimeFormatted } from "./utils/dateUtil";
 import { fileExists } from "./utils/fileUtils";
+import * as vscodeVariables from "vscode-variables";
 
 const octokit = new Octokit();
 const gitRepoInfo = {
@@ -259,7 +260,9 @@ async function jarPathExists(resource: Uri): Promise<boolean> {
     }
 
     try {
-        const jarUri = Uri.file(jarPath);
+        const resolvedJarPath = vscodeVariables(jarPath);
+        console.log("resolvedJarPath is", resolvedJarPath);
+        const jarUri = Uri.file(resolvedJarPath);
         return await validateFileUri(jarUri) === "";
     } catch (err) {
         return false;
